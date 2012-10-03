@@ -696,6 +696,44 @@ struct Interface<VirtualString>:
   }
 };
 
+class ConstraintVar;
+template<>
+struct Interface<ConstraintVar>:
+  ImplementedBy<SmallInt, CstIntVar> {
+    bool assigned(RichNode self, VM vm) {
+      raiseTypeError(vm, MOZART_STR("ConstraintVariable"), self);
+    }
+};
+
+class IntVarLike;
+template<>
+struct Interface<IntVarLike>:
+  ImplementedBy<SmallInt, CstIntVar> {
+
+    bool isIntVarLike(RichNode self, VM vm) {
+      return false;
+    }
+
+    UnstableNode intVar(RichNode self, VM vm) {
+      raiseTypeError(vm, MOZART_STR("IntVarLike"), self);
+    }
+
+    UnstableNode min(RichNode self, VM vm) {
+      raiseTypeError(vm, MOZART_STR("IntVarLike"), self);
+    }
+
+    UnstableNode max(RichNode self, VM vm) {
+      raiseTypeError(vm, MOZART_STR("IntVarLike"), self);
+    }
+
+    UnstableNode value(RichNode self, VM vm) {
+      raiseTypeError(vm, MOZART_STR("IntVarLike"), self);
+    }
+
+    UnstableNode isIn(RichNode self, VM vm, RichNode right) {
+      raiseTypeError(vm, MOZART_STR("IntVarLike"), self);
+    }    
+  };
 }
 
 #endif // __COREINTERFACES_DECL_H

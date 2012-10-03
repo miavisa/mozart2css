@@ -65,6 +65,8 @@ namespace mozart {
 #include "ChunkLike-interf.hh"
 #include "StringLike-interf.hh"
 #include "VirtualString-interf.hh"
+#include "IntVarLike-interf.hh"
+#include "ConstraintVar-interf.hh"
 
 struct Dottable: public BaseDottable {
   // Not supported by compilers yet

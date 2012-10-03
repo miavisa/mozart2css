@@ -210,6 +210,49 @@ nativeint SmallInt::vsLength(Self self, VM vm) {
   return (nativeint) std::to_string(value()).length();
 }
 
+// IntVarLike ------------------------------------------------------------------
+
+bool SmallInt::isIntVarLike(Self self, VM vm) {
+  return CstIntVar::validAsElement(value());
+}
+
+UnstableNode SmallInt::intVar(Self self, VM vm) {
+    return CstIntVar::build(vm,self,self);
+}
+
+UnstableNode SmallInt::min(Self self, VM vm) {
+  if(!CstIntVar::validAsElement(value()))
+    raiseTypeError(vm,MOZART_STR("IntVarLike"),self);
+  return SmallInt::build(vm,value());
+}
+
+UnstableNode SmallInt::max(Self self, VM vm) {
+  if(!CstIntVar::validAsElement(value()))
+    raiseTypeError(vm,MOZART_STR("IntVarLike"),self);
+  return SmallInt::build(vm,value());
+}
+
+UnstableNode SmallInt::value(Self self, VM vm) {
+  if(!CstIntVar::validAsElement(value()))
+    raiseTypeError(vm,MOZART_STR("IntVarLike"),self);
+  return SmallInt::build(vm,value());
+}
+
+UnstableNode SmallInt::isIn(Self self, VM vm, RichNode right) {
+  nativeint r = getArgument<nativeint>(vm, right, MOZART_STR("integer"));
+  if(!CstIntVar::validAsElement(r))
+    raiseTypeError(vm,MOZART_STR("IntVarLike"),self);
+  return r == value()?
+    Boolean::build(vm,true) : Boolean::build(vm,false);
+}
+  
+// ConstraintVar ---------------------------------------------------------------
+bool SmallInt::assigned(Self self, VM vm) {
+  if(!CstIntVar::validAsElement(value()))
+    raiseTypeError(vm,MOZART_STR("ConstraintVar"),self);
+  return true;
+}
+
 }
 
 #endif // MOZART_GENERATOR

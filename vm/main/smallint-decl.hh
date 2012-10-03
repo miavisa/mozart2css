@@ -145,6 +145,30 @@ public:
   nativeint vsLength(Self self, VM vm);
 
 public:
+  // IntVarLike interface
+  inline
+  bool isIntVarLike(Self self, VM vm);
+
+  inline
+  UnstableNode intVar(Self self, VM vm);
+
+  inline
+  UnstableNode min(Self self, VM vm);
+
+  inline
+  UnstableNode max(Self self, VM vm);
+
+  inline
+  UnstableNode value(Self self, VM vm);
+
+  inline
+  UnstableNode isIn(Self self, VM vm, RichNode right);
+  
+public:
+  // ConstraintVar interface
+  inline
+  bool assigned(Self self, VM vm);
+public:
   // Miscellaneous
 
   void printReprToStream(Self self, VM vm, std::ostream& out, int depth) {
