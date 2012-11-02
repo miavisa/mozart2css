@@ -1,14 +1,14 @@
 message(STATUS "Gecode configuration")
 
-set(DEFAULT_GECODE_SRC_DIR "${ep_base}/Source/gecode")
+#set(DEFAULT_GECODE_SRC_DIR "${ep_base}/Source/gecode")
 set(DEFAULT_GECODE_INSTALL_DIR "${ep_base}/Install/gecode")
-set(GECODE_SRC_DIR ${DEFAULT_GECODE_SRC_DIR} CACHE PATH "Path to Gecode sources")
+#set(GECODE_SRC_DIR ${DEFAULT_GECODE_SRC_DIR} CACHE PATH "Path to Gecode sources")
 set(GECODE_INSTALL_DIR ${DEFAULT_GECODE_INSTALL_DIR} CACHE PATH "Path to Gecode installation")
 
 set(GECODE_VERSION 3.7.3)
 
-if("${GECODE_SRC_DIR}" STREQUAL "${DEFAULT_GECODE_SRC_DIR}" AND
-   NOT EXISTS "${GECODE_BUILD_DIR}/lib/gecode/kernel.hh")
+if("${GECODE_INSTALL_DIR}" STREQUAL "${DEFAULT_GECODE_INSTALL_DIR}" AND
+   NOT EXISTS "${GECODE_INSTALL_DIR}/lib/gecode/kernel.hh")
   set(GECODE_BUILD_DIR "${ep_base}/Build/gecode")
   ExternalProject_Add(
     gecode
@@ -19,6 +19,7 @@ if("${GECODE_SRC_DIR}" STREQUAL "${DEFAULT_GECODE_SRC_DIR}" AND
     PATCH_COMMAND ""
     CONFIGURE_COMMAND ${GECODE_SRC_DIR}/configure
       --enable-static --disable-shared --prefix=${GECODE_INSTALL_DIR}
+      --libdir=${GECODE_INSTALL_DIR}/lib
       --disable-gist --disable-flatzinc --disable-examples 
       --disable-qt --disable-driver --disable-minimodel
     BUILD_COMMAND make
