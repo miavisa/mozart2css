@@ -52,7 +52,17 @@ add_custom_target(genbuiltins
   DEPENDS coremodules.genbi
   VERBATIM)
 
+if(BUILD_CSS)
+  add_definitions(-DVM_HAS_CSS=1)
+  include_directories(${GECODE_INCLUDES})
+endif()
+
 add_library(mozartvm emulate.cc memmanager.cc gcollect.cc
   unify.cc sclone.cc vm.cc coredatatypes.cc coders.cc properties.cc
   coremodules.cc)
 add_dependencies(mozartvm gensources genbuiltins)
+
+if(BUILD_CSS)
+   add_dependencies(mozartvm ${GECODE_LIBRARIES})
+   target_link_libraries(mozartvm ${GECODE_LIBRARIES})
+endif()

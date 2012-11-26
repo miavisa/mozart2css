@@ -31,6 +31,10 @@
 #include "exceptions-decl.hh"
 #include "vmallocatedlist-decl.hh"
 
+#ifdef VM_HAS_CSS
+#include <gecode/int.hh>
+#endif
+
 namespace mozart {
 
 struct ScriptEntry {
