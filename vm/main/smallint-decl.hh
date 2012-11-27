@@ -140,6 +140,25 @@ public:
   inline
   nativeint vsLength(VM vm);
 
+#ifdef VM_HAS_CSS
+public:
+  // IntVarLike interface
+  inline
+  bool isIntVarLike(VM vm);
+
+  inline
+  UnstableNode min(VM vm);
+
+  inline
+  UnstableNode max(VM vm);
+
+  inline
+  UnstableNode value(VM vm);
+
+  inline
+  UnstableNode isIn(VM vm, RichNode right);
+#endif
+
 public:
   // Miscellaneous
 
