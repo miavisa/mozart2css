@@ -68,6 +68,7 @@ namespace mozart {
 #include "VirtualString-interf.hh"
 
 #ifdef VM_HAS_CSS
+#include "ConstraintVar-interf.hh"
 #include "IntVarLike-interf.hh"
 #endif
 

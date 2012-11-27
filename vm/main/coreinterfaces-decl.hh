@@ -672,6 +672,17 @@ struct Interface<VirtualString>:
 };
 
 #ifdef VM_HAS_CSS
+class ConstraintVar;
+template <>
+struct Interface<ConstraintVar>:
+  ImplementedBy<SmallInt>,
+  NoAutoReflectiveCalls {
+
+  bool assigned(RichNode self, VM vm) {
+    raiseTypeError(vm, MOZART_STR("ConstraintVar"), self);
+  }
+};
+
 class IntVarLike;
 template<>
 struct Interface<IntVarLike>:

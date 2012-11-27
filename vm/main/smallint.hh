@@ -211,6 +211,12 @@ nativeint SmallInt::vsLength(VM vm) {
 }
 
 #ifdef VM_HAS_CSS
+// ConstraintVar ------------------------------------------------------------
+bool SmallInt::assigned(VM vm) {
+  if(!isIntVarLike(vm))
+    raiseTypeError(vm, MOZART_STR("ConstraintVar"), value());
+  return true;
+}
 // IntVarLike ---------------------------------------------------------------
 bool SmallInt::isIntVarLike(VM vm) {
   return (Gecode::Int::Limits::min <= value()) &&
@@ -237,7 +243,7 @@ UnstableNode SmallInt::value(VM vm) {
 
 UnstableNode SmallInt::isIn(VM vm, RichNode right) {
   nativeint r = getArgument<nativeint>(vm,right,MOZART_STR("integer"));
-  if (r < Gecode::Int::Limits::min || Gecode::Int::Limits::max > r)
+  if (r < Gecode::Int::Limits::min || r > Gecode::Int::Limits::max)
     raiseTypeError(vm,MOZART_STR("IntVarLike"),right);
   return r == value() ? 
          Boolean::build(vm,true) : Boolean::build(vm,false);

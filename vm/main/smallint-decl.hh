@@ -132,6 +132,10 @@ public:
 
 #ifdef VM_HAS_CSS
 public:
+  // ConstraintVar interface
+  inline
+  bool assigned(VM vm);
+public:
   // IntVarLike interface
   inline
   bool isIntVarLike(VM vm);
