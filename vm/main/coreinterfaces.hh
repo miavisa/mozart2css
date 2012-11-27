@@ -67,6 +67,10 @@ namespace mozart {
 #include "StringLike-interf.hh"
 #include "VirtualString-interf.hh"
 
+#ifdef VM_HAS_CSS
+#include "IntVarLike-interf.hh"
+#endif
+
 //////////////
 // Callable //
 //////////////

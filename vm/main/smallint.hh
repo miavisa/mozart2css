@@ -30,6 +30,10 @@
 #include <string>
 #include <limits>
 
+#ifdef VM_HAS_CSS
+#include <gecode/int.hh>
+#endif
+
 #ifndef MOZART_GENERATOR
 
 namespace mozart {
@@ -205,6 +209,40 @@ nativeint SmallInt::vsLength(VM vm) {
   auto str = ss.str();
   return (nativeint) str.length();
 }
+
+#ifdef VM_HAS_CSS
+// IntVarLike ---------------------------------------------------------------
+bool SmallInt::isIntVarLike(VM vm) {
+  return (Gecode::Int::Limits::min <= value()) &&
+         (value() <= Gecode::Int::Limits::max); 
+}
+
+UnstableNode SmallInt::min(VM vm) {
+  if(!isIntVarLike(vm))
+    raiseTypeError(vm, MOZART_STR("IntVarLike"),value());
+  return SmallInt::build(vm,value());  
+}
+
+UnstableNode SmallInt::max(VM vm) {
+  if(!isIntVarLike(vm))
+    raiseTypeError(vm, MOZART_STR("IntVarLike"),value());
+  return SmallInt::build(vm,value());  
+}
+
+UnstableNode SmallInt::value(VM vm) {
+  if(!isIntVarLike(vm))
+    raiseTypeError(vm, MOZART_STR("IntVarLike"),value());
+  return SmallInt::build(vm,value());  
+}
+
+UnstableNode SmallInt::isIn(VM vm, RichNode right) {
+  nativeint r = getArgument<nativeint>(vm,right,MOZART_STR("integer"));
+  if (r < Gecode::Int::Limits::min || Gecode::Int::Limits::max > r)
+    raiseTypeError(vm,MOZART_STR("IntVarLike"),right);
+  return r == value() ? 
+         Boolean::build(vm,true) : Boolean::build(vm,false);
+}
+#endif
 
 }
 
