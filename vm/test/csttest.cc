@@ -41,7 +41,7 @@ TEST_F(CstTest, SmallIntIntVarLikeInterface) {
   UnstableNode isInM = IntVarLike(n).isIn(vm,m);
   EXPECT_TRUE(getArgument<bool>(vm,isInM));
   
-  // UnstableNode o = SmallInt::build(vm,0);
-  // UnstableNode isInO = IntVarLike(n).isIn(vm,o);
-  // EXPECT_BOOL(false,isInO);
+  UnstableNode o = SmallInt::build(vm,0);
+  UnstableNode isInO = IntVarLike(n).isIn(vm,o);
+  EXPECT_FALSE(getArgument<bool>(vm,isInO));
 }
