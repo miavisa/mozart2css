@@ -37,53 +37,67 @@ namespace mozart {
 // CodeArea //
 //////////////
 
-class CodeArea;
-
 #ifndef MOZART_GENERATOR
 #include "CodeArea-implem-decl.hh"
 #endif
 
 class CodeArea: public DataType<CodeArea>, StoredWithArrayOf<StableNode> {
 public:
-  typedef SelfType<CodeArea>::Self Self;
-public:
   static atom_t getTypeAtom(VM vm) {
     return vm->getAtom(MOZART_STR("codeArea"));
   }
 
   inline
-  CodeArea(VM vm, size_t Kc, StaticArray<StableNode> _Ks,
-           ByteCode* codeBlock, size_t size, size_t arity, size_t Xcount,
-           atom_t printName, RichNode debugData);
+  CodeArea(VM vm, size_t Kc, ByteCode* codeBlock, size_t size, size_t arity,
+           size_t Xcount, atom_t printName, RichNode debugData);
 
   inline
-  CodeArea(VM vm, size_t Kc, StaticArray<StableNode> _Ks,
-           GR gr, Self from);
+  CodeArea(VM vm, size_t Kc, GR gr, CodeArea& from);
 
-  size_t getArraySize() {
+public:
+  // Requirement for StoredWithArrayOf
+  size_t getArraySizeImpl() {
     return _Kc;
   }
 
-  inline
-  void initElement(Self self, VM vm, size_t index, RichNode value);
+public:
+  // CodeAreaProvider interface
 
   bool isCodeAreaProvider(VM vm) {
     return true;
   }
 
   inline
-  void getCodeAreaInfo(Self self, VM vm, size_t& arity,
+  void getCodeAreaInfo(VM vm, size_t& arity,
                        ProgramCounter& start, size_t& Xcount,
                        StaticArray<StableNode>& Ks);
 
   inline
-  void getCodeAreaDebugInfo(Self self, VM vm,
-                            atom_t& printName, UnstableNode& debugData);
+  void getCodeAreaDebugInfo(VM vm, atom_t& printName, UnstableNode& debugData);
+
+public:
+  // Miscellaneous
+
+  inline
+  void printReprToStream(VM vm, std::ostream& out, int depth, int width);
+
+  inline
+  UnstableNode serialize(VM vm, SE se);
+
+  inline
+  GlobalNode* globalize(RichNode self, VM vm);
+
+public:
+  inline
+  void setUUID(RichNode self, VM vm, const UUID& uuid);
+
 private:
   void _setCodeBlock(VM vm, ByteCode* codeBlock, size_t size) {
     _codeBlock = new (vm) ByteCode[size / sizeof(ByteCode)];
     std::memcpy(_codeBlock, codeBlock, size);
   }
+
+  GlobalNode* _gnode;
 
   ByteCode* _codeBlock; // actual byte-code in this code area
   size_t _size;         // size of the codeBlock

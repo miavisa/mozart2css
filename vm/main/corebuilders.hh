@@ -55,24 +55,6 @@ UnstableNode build(VM vm, size_t value) {
   return SmallInt::build(vm, value);
 }
 
-namespace internal {
-  struct AlternativeToInt {
-    operator nativeint() { return 0; }
-  };
-
-  struct AlternativeToInt64 {
-    operator nativeint() { return 0; }
-  };
-
-  typedef typename std::conditional<
-    std::is_same<int, nativeint>::value,
-    AlternativeToInt, int>::type intIfDifferentFromNativeInt;
-
-  typedef typename std::conditional<
-    std::is_same<std::int64_t, nativeint>::value,
-    AlternativeToInt64, std::int64_t>::type int64IfDifferentFromNativeInt;
-}
-
 inline
 UnstableNode build(VM vm, internal::intIfDifferentFromNativeInt value) {
   return SmallInt::build(vm, value);
@@ -134,6 +116,24 @@ UnstableNode build(VM vm, builtins::BaseBuiltin& builtin) {
 }
 
 inline
+UnstableNode build(VM vm, const UUID& uuid) {
+  unsigned char bytes[UUID::byte_count];
+  uuid.toBytes(bytes);
+  return ByteString::build(vm, newLString(vm, bytes, UUID::byte_count));
+}
+
+inline
+UnstableNode build(VM vm, GlobalNode* gnode) {
+  return ReifiedGNode::build(vm, gnode);
+}
+
+template <class T>
+inline
+UnstableNode build(VM vm, const std::shared_ptr<T>& value) {
+  return ForeignPointer::build(vm, value);
+}
+
+inline
 UnstableNode build(VM vm, UnstableNode&& node) {
   return std::move(node);
 }
@@ -155,37 +155,30 @@ UnstableNode build(VM vm, RichNode node) {
 
 // Initialize the elements of an aggregate
 
-template <size_t i, class T, class U>
+template <size_t i>
 inline
-void staticInitElement(VM vm, TypedRichNode<T> aggregate, U&& value) {
-  UnstableNode valueNode = build(vm, std::forward<U>(value));
-  aggregate.initElement(vm, i, valueNode);
+void staticInitElementsInner(VM vm, StaticArray<StableNode> elements) {
 }
 
-template <size_t i, class T>
+template <size_t i, class IthType, class... Rest>
 inline
-void staticInitElementsInner(VM vm, TypedRichNode<T> aggregate) {
-}
-
-template <size_t i, class T, class U, class... Rest>
-inline
-void staticInitElementsInner(VM vm, TypedRichNode<T> aggregate,
-                             U&& ithValue, Rest&&... rest) {
-  staticInitElement<i, T, U>(vm, aggregate, std::forward<U>(ithValue));
-  staticInitElementsInner<i+1, T>(vm, aggregate, std::forward<Rest>(rest)...);
+void staticInitElementsInner(VM vm, StaticArray<StableNode> elements,
+                             IthType&& ithValue, Rest&&... rest) {
+  elements[i].init(vm, std::forward<IthType>(ithValue));
+  staticInitElementsInner<i+1>(vm, elements, std::forward<Rest>(rest)...);
 }
 
 /**
  * Initialize statically the elements of an aggregate (e.g., tuple)
- * @param vm          Contextual VM
- * @param aggregate   The aggregate to initialize, as a typed RichNode.
- * @param args...     The elements to initialize
- *                    (in any form supported by build())
+ * @param vm         Contextual VM
+ * @param elements   The static array of StableNode's to initialize
+ * @param args...    The values of the elements
+ *                   (in any form supported by build())
  */
-template <class T, class... Args>
+template <class... Args>
 inline
-void staticInitElements(VM vm, TypedRichNode<T> aggregate, Args&&... args) {
-  staticInitElementsInner<0, T>(vm, aggregate, std::forward<Args>(args)...);
+void staticInitElements(VM vm, StaticArray<StableNode> elements, Args&&... args) {
+  staticInitElementsInner<0>(vm, elements, std::forward<Args>(args)...);
 }
 
 // Build a tuple
@@ -207,11 +200,23 @@ UnstableNode buildTuple(VM vm, LT&& label) {
 template <class LT, class... Args>
 inline
 UnstableNode buildTuple(VM vm, LT&& label, Args&&... args) {
-  UnstableNode labelNode = build(vm, std::forward<LT>(label));
-  UnstableNode result = Tuple::build(vm, sizeof...(args), labelNode);
-  staticInitElements<Tuple>(vm, RichNode(result).as<Tuple>(),
-                            std::forward<Args>(args)...);
+  UnstableNode result = Tuple::build(vm, sizeof...(args),
+                                     std::forward<LT>(label));
+  staticInitElements(vm, RichNode(result).as<Tuple>().getElementsArray(),
+                     std::forward<Args>(args)...);
   return result;
+}
+
+/**
+ * Build an Oz #-tuple inside a node, with its fields
+ * The arguments can be in any form supported by build().
+ * @param vm        Contextual VM
+ * @param args...   Fields of the #-tuple
+ */
+template <class... Args>
+inline
+UnstableNode buildSharp(VM vm, Args&&... args) {
+  return buildTuple(vm, vm->coreatoms.sharp, std::forward<Args>(args)...);
 }
 
 /**
@@ -224,9 +229,7 @@ UnstableNode buildTuple(VM vm, LT&& label, Args&&... args) {
 template <class HT, class TT>
 inline
 UnstableNode buildCons(VM vm, HT&& head, TT&& tail) {
-  UnstableNode headNode = build(vm, std::forward<HT>(head));
-  UnstableNode tailNode = build(vm, std::forward<TT>(tail));
-  return Cons::build(vm, headNode, tailNode);
+  return Cons::build(vm, std::forward<HT>(head), std::forward<TT>(tail));
 }
 
 /**
@@ -265,10 +268,10 @@ UnstableNode buildList(VM vm, Head&& head, Tail&&... tail) {
 template <class LT, class... Args>
 inline
 UnstableNode buildArity(VM vm, LT&& label, Args&&... args) {
-  UnstableNode labelNode = build(vm, std::forward<LT>(label));
-  UnstableNode result = Arity::build(vm, sizeof...(args), labelNode);
-  staticInitElements<Arity>(vm, RichNode(result).as<Arity>(),
-                            std::forward<Args>(args)...);
+  UnstableNode result = Arity::build(vm, sizeof...(args),
+                                     std::forward<LT>(label));
+  staticInitElements(vm, RichNode(result).as<Arity>().getElementsArray(),
+                     std::forward<Args>(args)...);
   return result;
 }
 
@@ -282,10 +285,10 @@ UnstableNode buildArity(VM vm, LT&& label, Args&&... args) {
 template <class AT, class... Args>
 inline
 UnstableNode buildRecord(VM vm, AT&& arity, Args&&... args) {
-  UnstableNode arityNode = build(vm, std::forward<AT>(arity));
-  UnstableNode result = Record::build(vm, sizeof...(args), arityNode);
-  staticInitElements<Record>(vm, RichNode(result).as<Record>(),
-                             std::forward<Args>(args)...);
+  UnstableNode result = Record::build(vm, sizeof...(args),
+                                      std::forward<AT>(arity));
+  staticInitElements(vm, RichNode(result).as<Record>().getElementsArray(),
+                     std::forward<Args>(args)...);
   return result;
 }
 
@@ -312,8 +315,9 @@ template <class... Args>
 inline
 UnstableNode buildPatMatConjunction(VM vm, Args&&... parts) {
   UnstableNode result = PatMatConjunction::build(vm, sizeof...(parts));
-  staticInitElements<PatMatConjunction>(
-    vm, RichNode(result).as<PatMatConjunction>(), std::forward<Args>(parts)...);
+  staticInitElements(
+    vm, RichNode(result).as<PatMatConjunction>().getElementsArray(),
+    std::forward<Args>(parts)...);
   return result;
 }
 
@@ -327,10 +331,11 @@ UnstableNode buildPatMatConjunction(VM vm, Args&&... parts) {
 template <class AT, class... Args>
 inline
 UnstableNode buildPatMatOpenRecord(VM vm, AT&& arity, Args&&... args) {
-  UnstableNode arityNode = build(vm, std::forward<AT>(arity));
-  UnstableNode result = PatMatOpenRecord::build(vm, sizeof...(args), arityNode);
-  staticInitElements<PatMatOpenRecord>(
-    vm, RichNode(result).as<PatMatOpenRecord>(), std::forward<Args>(args)...);
+  UnstableNode result = PatMatOpenRecord::build(vm, sizeof...(args),
+                                                std::forward<AT>(arity));
+  staticInitElements(
+    vm, RichNode(result).as<PatMatOpenRecord>().getElementsArray(),
+    std::forward<Args>(args)...);
   return result;
 }
 

@@ -29,16 +29,12 @@
 
 namespace mozart {
 
-class SmallInt;
-
 #ifndef MOZART_GENERATOR
 #include "SmallInt-implem-decl.hh"
 #endif
 
-class SmallInt: public DataType<SmallInt>, Copyable, StoredAs<nativeint>,
+class SmallInt: public DataType<SmallInt>, StoredAs<nativeint>,
   WithValueBehavior {
-public:
-  typedef SelfType<SmallInt>::Self Self;
 public:
   static constexpr UUID uuid = "{00000000-0000-4f00-0000-000000000001}";
 
@@ -46,103 +42,103 @@ public:
     return vm->getAtom(MOZART_STR("int"));
   }
 
-  SmallInt(nativeint value) : _value(value) {}
+  explicit SmallInt(nativeint value) : _value(value) {}
 
   static void create(nativeint& self, VM vm, nativeint value) {
     self = value;
   }
 
   inline
-  static void create(nativeint& self, VM vm, GR gr, Self from);
+  static void create(nativeint& self, VM vm, GR gr, SmallInt from);
 
 public:
   nativeint value() const { return _value; }
 
   inline
-  bool equals(VM vm, Self right);
+  bool equals(VM vm, RichNode right);
 
   inline
-  int compareFeatures(VM vm, Self right);
+  int compareFeatures(VM vm, RichNode right);
 
 public:
   // Comparable interface
 
   inline
-  int compare(Self self, VM vm, RichNode right);
-
-public:
-  // IntegerValue inteface
-
-  nativeint intValue(Self self, VM vm) {
-    return value();
-  }
-
-  inline
-  bool equalsInteger(Self self, VM vm, nativeint right);
+  int compare(VM vm, RichNode right);
 
 public:
   // Numeric inteface
 
-  bool isNumber(Self self, VM vm) {
+  bool isNumber(VM vm) {
     return true;
   }
 
-  bool isInt(Self self, VM vm) {
+  bool isInt(VM vm) {
     return true;
   }
 
-  bool isFloat(Self self, VM vm) {
+  bool isFloat(VM vm) {
     return false;
   }
 
   inline
-  UnstableNode opposite(Self self, VM vm);
+  UnstableNode opposite(VM vm);
 
   inline
-  UnstableNode add(Self self, VM vm, RichNode right);
+  UnstableNode add(VM vm, RichNode right);
 
   inline
-  UnstableNode addValue(Self self, VM vm, nativeint b);
+  UnstableNode add(VM vm, nativeint b);
 
   inline
-  UnstableNode subtract(Self self, VM vm, RichNode right);
+  UnstableNode subtract(VM vm, RichNode right);
 
   inline
-  UnstableNode subtractValue(Self self, VM vm, nativeint b);
+  UnstableNode subtractValue(VM vm, nativeint b);
 
   inline
-  UnstableNode multiply(Self self, VM vm, RichNode right);
+  UnstableNode multiply(VM vm, RichNode right);
 
   inline
-  UnstableNode multiplyValue(Self self, VM vm, nativeint b);
+  UnstableNode multiplyValue(VM vm, nativeint b);
 
   inline
-  UnstableNode divide(Self self, VM vm, RichNode right);
+  UnstableNode divide(RichNode self, VM vm, RichNode right);
 
   inline
-  UnstableNode div(Self self, VM vm, RichNode right);
+  UnstableNode div(VM vm, RichNode right);
 
   inline
-  UnstableNode divValue(Self self, VM vm, nativeint b);
+  UnstableNode divValue(VM vm, nativeint b);
 
   inline
-  UnstableNode mod(Self self, VM vm, RichNode right);
+  UnstableNode mod(VM vm, RichNode right);
 
   inline
-  UnstableNode modValue(Self self, VM vm, nativeint b);
+  UnstableNode modValue(VM vm, nativeint b);
 
+#ifdef VM_HAS_CSS
 public:
-  // VirtualString inteface
-
-  bool isVirtualString(Self self, VM vm) {
-    return true;
-  }
+  // ConstraintVar interface
+  inline
+  bool assigned(VM vm);
+public:
+  // IntVarLike interface
+  inline
+  bool isIntVarLike(VM vm);
 
   inline
-  void toString(Self self, VM vm, std::basic_ostream<nchar>& sink);
+  UnstableNode min(VM vm);
 
   inline
-  nativeint vsLength(Self self, VM vm);
+  UnstableNode max(VM vm);
+
+  inline
+  UnstableNode value(VM vm);
+
+  inline
+  UnstableNode isIn(VM vm, RichNode right);
+#endif
 
 public:
   // IntVarLike interface
@@ -171,7 +167,7 @@ public:
 public:
   // Miscellaneous
 
-  void printReprToStream(Self self, VM vm, std::ostream& out, int depth) {
+  void printReprToStream(VM vm, std::ostream& out, int depth, int width) {
     out << value();
   }
 

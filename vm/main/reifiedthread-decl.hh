@@ -33,33 +33,29 @@ namespace mozart {
 // ReifiedThread //
 ///////////////////
 
-class ReifiedThread;
-
 #ifndef MOZART_GENERATOR
 #include "ReifiedThread-implem-decl.hh"
 #endif
 
 class ReifiedThread: public DataType<ReifiedThread>,
-  StoredAs<Runnable*>, Copyable, WithValueBehavior {
-public:
-  typedef SelfType<ReifiedThread>::Self Self;
+  StoredAs<Runnable*>, WithValueBehavior {
 public:
   static atom_t getTypeAtom(VM vm) {
     return vm->getAtom(MOZART_STR("thread"));
   }
 
-  ReifiedThread(Runnable* runnable): _runnable(runnable) {}
+  explicit ReifiedThread(Runnable* runnable): _runnable(runnable) {}
 
   static void create(Runnable*& self, VM vm, Runnable* runnable) {
     self = runnable;
   }
 
   inline
-  static void create(Runnable*& self, VM vm, GR gr, Self from);
+  static void create(Runnable*& self, VM vm, GR gr, ReifiedThread from);
 
 public:
   inline
-  bool equals(VM vm, Self right);
+  bool equals(VM vm, RichNode right);
 
 public:
   Runnable* value() {
@@ -78,7 +74,7 @@ public:
 public:
   // ThreadLike interface
 
-  bool isThread(Self self, VM vm) {
+  bool isThread(VM vm) {
     return true;
   }
 

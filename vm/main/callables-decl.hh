@@ -36,16 +36,12 @@ namespace mozart {
 // BuiltinProcedure //
 //////////////////////
 
-class BuiltinProcedure;
-
 #ifndef MOZART_GENERATOR
 #include "BuiltinProcedure-implem-decl.hh"
 #endif
 
-class BuiltinProcedure: public DataType<BuiltinProcedure>, Copyable,
+class BuiltinProcedure: public DataType<BuiltinProcedure>,
   StoredAs<builtins::BaseBuiltin*>, WithValueBehavior {
-public:
-  typedef SelfType<BuiltinProcedure>::Self Self;
 private:
   typedef builtins::BaseBuiltin Builtin;
 public:
@@ -53,7 +49,7 @@ public:
     return vm->getAtom(MOZART_STR("procedure"));
   }
 
-  BuiltinProcedure(Builtin* builtin): _builtin(builtin) {}
+  explicit BuiltinProcedure(Builtin* builtin): _builtin(builtin) {}
 
   static void create(Builtin*& self, VM vm, Builtin* builtin) {
     self = builtin;
@@ -64,7 +60,12 @@ public:
   }
 
   inline
-  static void create(Builtin*& self, VM vm, GR gr, Self from);
+  static void create(Builtin*& self, VM vm, GR gr, BuiltinProcedure from);
+
+public:
+  builtins::BaseBuiltin* value() {
+    return _builtin;
+  }
 
 public:
   /**
@@ -75,7 +76,13 @@ public:
   }
 
   inline
-  bool equals(VM vm, Self right);
+  bool equals(VM vm, RichNode right);
+
+public:
+  // WithPrintName interface
+
+  inline
+  atom_t getPrintName(VM vm);
 
 public:
   // BuiltinCallable interface
@@ -91,45 +98,48 @@ public:
    * @param args   Actual parameters
    */
   inline
-  void callBuiltin(Self self, VM vm, size_t argc, UnstableNode* args[]);
+  void callBuiltin(VM vm, size_t argc, UnstableNode* args[]);
 
   template <class... Args>
   inline
-  void callBuiltin(Self self, VM vm, Args&&... args);
+  void callBuiltin(VM vm, Args&&... args);
 
-  builtins::BaseBuiltin* getBuiltin(RichNode self, VM vm) {
+  builtins::BaseBuiltin* getBuiltin(VM vm) {
     return _builtin;
   }
 
 public:
   // Callable interface
 
-  bool isCallable(Self self, VM vm) {
+  bool isCallable(VM vm) {
     return true;
   }
 
-  bool isProcedure(Self self, VM vm) {
+  bool isProcedure(VM vm) {
     return true;
   }
 
   inline
-  size_t procedureArity(Self self, VM vm);
+  size_t procedureArity(VM vm);
 
   inline
-  void getCallInfo(Self self, VM vm, size_t& arity,
+  void getCallInfo(RichNode self, VM vm, size_t& arity,
                    ProgramCounter& start, size_t& Xcount,
                    StaticArray<StableNode>& Gs,
                    StaticArray<StableNode>& Ks);
 
   inline
-  void getDebugInfo(Self self, VM vm,
+  void getDebugInfo(RichNode self, VM vm,
                     atom_t& printName, UnstableNode& debugData);
 public:
   // Miscellaneous
 
-  void printReprToStream(Self self, VM vm, std::ostream& out, int depth) {
-    out << "<P/" << _builtin->getArity() << " " << _builtin->getName() << ">";
-  }
+  inline
+  UnstableNode serialize(VM vm, SE se);
+
+  inline
+  void printReprToStream(VM vm, std::ostream& out, int depth, int width);
+
 private:
   Builtin* _builtin;
 };
@@ -142,8 +152,6 @@ private:
 // Abstraction //
 /////////////////
 
-class Abstraction;
-
 #ifndef MOZART_GENERATOR
 #include "Abstraction-implem-decl.hh"
 #endif
@@ -154,47 +162,41 @@ class Abstraction;
 class Abstraction: public DataType<Abstraction>, public WithHome,
   StoredWithArrayOf<StableNode> {
 public:
-  typedef SelfType<Abstraction>::Self Self;
-public:
   static atom_t getTypeAtom(VM vm) {
     return vm->getAtom(MOZART_STR("procedure"));
   }
 
   inline
-  Abstraction(VM vm, size_t Gc, StaticArray<StableNode> _Gs,
-              RichNode body);
+  Abstraction(VM vm, size_t Gc, RichNode body);
 
   inline
-  Abstraction(VM vm, size_t Gc, StaticArray<StableNode> _Gs,
-              GR gr, Self from);
+  Abstraction(VM vm, size_t Gc, GR gr, Abstraction& from);
 
 public:
-  size_t getArraySize() {
+  // Requirement for StoredWithArrayOf
+  size_t getArraySizeImpl() {
     return _Gc;
   }
 
-  inline
-  StaticArray<StableNode> getElementsArray(Self self);
-
 public:
-  // ArrayInitializer interface
+  // WithPrintName interface
 
   inline
-  void initElement(Self self, VM vm, size_t index, RichNode value);
+  atom_t getPrintName(VM vm);
 
 public:
   // Callable interface
 
-  bool isCallable(Self self, VM vm) {
+  bool isCallable(VM vm) {
     return true;
   }
 
-  bool isProcedure(Self self, VM vm) {
+  bool isProcedure(VM vm) {
     return true;
   }
 
   inline
-  size_t procedureArity(Self self, VM vm);
+  size_t procedureArity(VM vm);
 
   /**
    * Get the information needed to call this abstraction
@@ -206,20 +208,29 @@ public:
    * @param Ks       Output: K registers
    */
   inline
-  void getCallInfo(Self self, VM vm, size_t& arity,
+  void getCallInfo(VM vm, size_t& arity,
                    ProgramCounter& start, size_t& Xcount,
                    StaticArray<StableNode>& Gs,
                    StaticArray<StableNode>& Ks);
 
   inline
-  void getDebugInfo(Self self, VM vm,
-                    atom_t& printName, UnstableNode& debugData);
+  void getDebugInfo(VM vm, atom_t& printName, UnstableNode& debugData);
 
 public:
   // Miscellaneous
 
   inline
-  void printReprToStream(Self self, VM vm, std::ostream& out, int depth);
+  void printReprToStream(VM vm, std::ostream& out, int depth, int width);
+
+  inline
+  UnstableNode serialize(VM vm, SE se);
+
+  inline
+  GlobalNode* globalize(RichNode self, VM vm);
+
+public:
+  inline
+  void setUUID(RichNode self, VM vm, const UUID& uuid);
 
 private:
   inline
@@ -230,6 +241,8 @@ private:
   void fillCodeAreaCache(VM vm);
 
 private:
+  GlobalNode* _gnode;
+
   StableNode _body;
   size_t _Gc;
 

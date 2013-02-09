@@ -1,4 +1,4 @@
-// Copyright © 2012, Université catholique de Louvain
+// Copyright © 2011, Université catholique de Louvain
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -22,29 +22,30 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef __BOOSTENVDATATYPES_H
-#define __BOOSTENVDATATYPES_H
+#ifndef __BOOSTENVPIPE_DECL_H
+#define __BOOSTENVPIPE_DECL_H
 
-#include "boostenv-decl.hh"
+#include <mozart.hh>
 
-#ifndef MOZART_GENERATOR
+#include "boostenvutils-decl.hh"
 
-namespace mozart {
+namespace mozart { namespace boostenv {
 
-/////////////////////
-// OzTCPConnection //
-/////////////////////
+#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
 
-#include "OzTCPConnection-implem.hh"
+////////////////////
+// PipeConnection //
+////////////////////
 
-///////////////////
-// OzTCPAcceptor //
-///////////////////
+class PipeConnection: public BaseSocketConnection<PipeConnection,
+  boost::asio::local::stream_protocol> {
+public:
+  inline
+  PipeConnection(BoostBasedVM& environment);
+};
 
-#include "OzTCPAcceptor-implem.hh"
+#endif // BOOST_ASIO_HAS_LOCAL_SOCKETS
 
-}
+} }
 
-#endif // MOZART_GENERATOR
-
-#endif // __BOOSTENVDATATYPES_H
+#endif // __BOOSTENVPIPE_DECL_H

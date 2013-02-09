@@ -37,17 +37,24 @@ namespace mozart {
 
 #include "PatMatCapture-implem.hh"
 
-void PatMatCapture::create(nativeint& self, VM vm, GR gr, Self from) {
-  self = from.get().index();
+void PatMatCapture::create(nativeint& self, VM vm, GR gr, PatMatCapture from) {
+  self = from.index();
 }
 
-bool PatMatCapture::equals(VM vm, Self right) {
-  return index() == right.get().index();
+bool PatMatCapture::equals(VM vm, RichNode right) {
+  return index() == right.as<PatMatCapture>().index();
 }
 
-void PatMatCapture::printReprToStream(Self self, VM vm, std::ostream& out,
-                                      int depth) {
+void PatMatCapture::printReprToStream(VM vm, std::ostream& out,
+                                      int depth, int width) {
   out << "<Capture/" << index() << ">";
+}
+
+UnstableNode PatMatCapture::serialize(VM vm, SE se) {
+  if (index() == -1)
+    return mozart::build(vm, MOZART_STR("patmatwildcard"));
+  else
+    return buildTuple(vm, MOZART_STR("patmatcapture"), index());
 }
 
 ///////////////////////
@@ -56,58 +63,61 @@ void PatMatCapture::printReprToStream(Self self, VM vm, std::ostream& out,
 
 #include "PatMatConjunction-implem.hh"
 
-PatMatConjunction::PatMatConjunction(VM vm, size_t count,
-                                     StaticArray<StableNode> _elements) {
+PatMatConjunction::PatMatConjunction(VM vm, size_t count) {
   _count = count;
 
   // Initialize elements with non-random data
   // TODO An Uninitialized type?
   for (size_t i = 0; i < count; i++)
-    _elements[i].init(vm);
+    getElements(i).init(vm);
 }
 
-PatMatConjunction::PatMatConjunction(VM vm, size_t count,
-                                     StaticArray<StableNode> _elements,
-                                     GR gr, Self from) {
+PatMatConjunction::PatMatConjunction(VM vm, size_t count, GR gr,
+                                     PatMatConjunction& from) {
   _count = count;
 
-  for (size_t i = 0; i < count; i++)
-    gr->copyStableNode(_elements[i], from[i]);
+  gr->copyStableNodes(getElementsArray(), from.getElementsArray(), count);
 }
 
-StableNode* PatMatConjunction::getElement(Self self, size_t index) {
-  return &self[index];
+StableNode* PatMatConjunction::getElement(size_t index) {
+  return &getElements(index);
 }
 
-bool PatMatConjunction::equals(Self self, VM vm, Self right, WalkStack& stack) {
-  if (_count != right->_count)
+bool PatMatConjunction::equals(VM vm, RichNode right, WalkStack& stack) {
+  auto rhs = right.as<PatMatConjunction>();
+
+  if (getCount() != rhs.getCount())
     return false;
 
-  stack.pushArray(vm, self.getArray(), right.getArray(), _count);
+  stack.pushArray(vm, getElementsArray(), rhs.getElementsArray(), getCount());
 
   return true;
 }
 
-void PatMatConjunction::initElement(Self self, VM vm, size_t index,
-                                    RichNode value) {
-  self[index].init(vm, value);
-}
-
-void PatMatConjunction::printReprToStream(Self self, VM vm, std::ostream& out,
-                                          int depth) {
+void PatMatConjunction::printReprToStream(VM vm, std::ostream& out,
+                                          int depth, int width) {
   out << "<PatMatConjunction>(";
 
-  if (depth <= 1) {
+  if (depth <= 0) {
     out << "...";
   } else {
     for (size_t i = 0; i < _count; i++) {
       if (i > 0)
         out << ", ";
-      out << repr(vm, self[i], depth);
+      out << repr(vm, getElements(i), depth, width);
     }
   }
 
   out << ")";
+}
+
+UnstableNode PatMatConjunction::serialize(VM vm, SE se) {
+  UnstableNode r = makeTuple(vm, MOZART_STR("patmatconjunction"), _count);
+  auto elements = RichNode(r).as<Tuple>().getElementsArray();
+  for (size_t i=0; i<_count; ++i) {
+    se->copy(elements[i], getElements(i));
+  }
+  return r;
 }
 
 //////////////////////
@@ -116,51 +126,59 @@ void PatMatConjunction::printReprToStream(Self self, VM vm, std::ostream& out,
 
 #include "PatMatOpenRecord-implem.hh"
 
-PatMatOpenRecord::PatMatOpenRecord(VM vm, size_t width,
-                                   StaticArray<StableNode> _elements,
-                                   RichNode arity) {
-  assert(arity.is<Arity>());
-
-  _arity.init(vm, arity);
+template <typename A>
+PatMatOpenRecord::PatMatOpenRecord(VM vm, size_t width, A&& arity) {
+  _arity.init(vm, std::forward<A>(arity));
   _width = width;
+
+  assert(RichNode(_arity).is<Arity>());
 
   // Initialize elements with non-random data
   // TODO An Uninitialized type?
   for (size_t i = 0; i < width; i++)
-    _elements[i].init(vm);
+    getElements(i).init(vm);
 }
 
-PatMatOpenRecord::PatMatOpenRecord(VM vm, size_t width,
-                                   StaticArray<StableNode> _elements,
-                                   GR gr, Self from) {
-  gr->copyStableNode(_arity, from->_arity);
+PatMatOpenRecord::PatMatOpenRecord(VM vm, size_t width, GR gr,
+                                   PatMatOpenRecord& from) {
+  gr->copyStableNode(_arity, from._arity);
   _width = width;
 
-  for (size_t i = 0; i < width; i++)
-    gr->copyStableNode(_elements[i], from[i]);
+  gr->copyStableNodes(getElementsArray(), from.getElementsArray(), width);
 }
 
-StableNode* PatMatOpenRecord::getElement(Self self, size_t index) {
-  return &self[index];
+StableNode* PatMatOpenRecord::getElement(size_t index) {
+  return &getElements(index);
 }
 
-void PatMatOpenRecord::initElement(Self self, VM vm, size_t index,
-                                   RichNode value) {
-  self[index].init(vm, value);
-}
-
-void PatMatOpenRecord::printReprToStream(Self self, VM vm, std::ostream& out,
-                                         int depth) {
+void PatMatOpenRecord::printReprToStream(VM vm, std::ostream& out,
+                                         int depth, int width) {
   auto arity = RichNode(_arity).as<Arity>();
 
-  out << "<PatMatOpenRecord " << repr(vm, *arity.getLabel(), depth) << "(";
+  out << "<PatMatOpenRecord " << repr(vm, *arity.getLabel(), depth+1, width);
+  out << "(";
 
   for (size_t i = 0; i < _width; i++) {
-    out << repr(vm, *arity.getElement(i), depth) << ":";
-    out << repr(vm, self[i], depth) << " ";
+    if ((nativeint) i >= width) {
+      out << "... ";
+      break;
+    }
+
+    out << repr(vm, *arity.getElement(i), depth, width) << ":";
+    out << repr(vm, getElements(i), depth, width) << " ";
   }
 
   out << "...)>";
+}
+
+UnstableNode PatMatOpenRecord::serialize(VM vm, SE se) {
+  UnstableNode r = makeTuple(vm, MOZART_STR("patmatopenrecord"), _width+1);
+  auto elements = RichNode(r).as<Tuple>().getElementsArray();
+  for (size_t i=0; i< _width; ++i) {
+    se->copy(elements[i], getElements(i));
+  }
+  se->copy(elements[_width], _arity);
+  return r;
 }
 
 }

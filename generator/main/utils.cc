@@ -151,7 +151,7 @@ void printTemplateParameters(llvm::raw_fd_ostream& Out,
         Args->get(i).print(Policy, Out);
       } else if (NTTP->hasDefaultArgument()) {
         Out << " = ";
-        NTTP->getDefaultArgument()->printPretty(Out, Context, 0, Policy,
+        NTTP->getDefaultArgument()->printPretty(Out, 0, Policy,
                                                 Indentation);
       }
     } else if (const TemplateTemplateParmDecl *TTPD =
@@ -164,9 +164,52 @@ void printTemplateParameters(llvm::raw_fd_ostream& Out,
   Out << "> ";
 }
 
+void printActualTemplateParameters(llvm::raw_fd_ostream& Out,
+  const TemplateParameterList *Params, const TemplateArgumentList *Args) {
+
+  assert(Params);
+  assert(!Args || Params->size() == Args->size());
+
+  ASTContext& Context = *context;
+  PrintingPolicy Policy = Context.getPrintingPolicy();
+
+  Out << "<";
+
+  for (unsigned i = 0, e = Params->size(); i != e; ++i) {
+    if (i != 0)
+      Out << ", ";
+
+    const Decl *Param = Params->getParam(i);
+    if (const TemplateTypeParmDecl *TTP =
+          dyn_cast<TemplateTypeParmDecl>(Param)) {
+
+      Out << TTP->getNameAsString();
+
+      if (TTP->isParameterPack())
+        Out << "... ";
+    } else if (const NonTypeTemplateParmDecl *NTTP =
+                 dyn_cast<NonTypeTemplateParmDecl>(Param)) {
+      if (IdentifierInfo *Name = NTTP->getIdentifier()) {
+        Out << ' ';
+        Out << Name->getName();
+      }
+
+      if (NTTP->isParameterPack() && !isa<PackExpansionType>(NTTP->getType()))
+        Out << "...";
+    } else if (const TemplateTemplateParmDecl *TTPD =
+                 dyn_cast<TemplateTemplateParmDecl>(Param)) {
+      (void) TTPD;
+      assert(false);
+    }
+  }
+
+  Out << ">";
+}
+
 void parseFunction(const clang::FunctionDecl* function,
                    std::string& name, std::string& resultType,
                    std::string& formalParams, std::string& actualParams,
+                   std::string& reflectActualParams,
                    bool hasSelfParam) {
 
   name = function->getNameAsString();
@@ -177,11 +220,14 @@ void parseFunction(const clang::FunctionDecl* function,
 
   std::stringstream formals;
   std::stringstream actuals;
+  std::stringstream reflectActuals;
 
   for (auto iter = param_begin; iter != param_end; ++iter) {
     if (iter != param_begin) {
       formals << ", ";
       actuals << ", ";
+      if (iter != param_begin+1)
+        reflectActuals << ", ";
     }
 
     ParmVarDecl* param = *iter;
@@ -210,15 +256,27 @@ void parseFunction(const clang::FunctionDecl* function,
     }
 
     // Print it
-    if (needForward)
+    if (needForward) {
       actuals << "std::forward<" << forwardArg << ">(" << paramName << ")";
-    else
+      reflectActuals << "std::forward<" << forwardArg << ">(" << paramName << ")";
+    } else {
       actuals << paramName;
 
-    if (isPackExpansion)
+      if (iter != param_begin) {
+        if (paramType->isLValueReferenceType())
+          reflectActuals << "::mozart::ozcalls::out(" << paramName << ")";
+        else
+          reflectActuals << paramName;
+      }
+    }
+
+    if (isPackExpansion) {
       actuals << "...";
+      reflectActuals << "...";
+    }
   }
 
   formalParams = formals.str();
   actualParams = actuals.str();
+  reflectActualParams = reflectActuals.str();
 }

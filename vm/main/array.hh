@@ -37,64 +37,61 @@ namespace mozart {
 
 #include "Array-implem.hh"
 
-Array::Array(VM vm, size_t width, StaticArray<UnstableNode> _elements,
-             nativeint low, RichNode initValue):
+Array::Array(VM vm, size_t width, nativeint low, RichNode initValue):
   WithHome(vm) {
 
   _width = width;
   _low = low;
 
   for (size_t i = 0; i < width; i++)
-    _elements[i].init(vm, initValue);
+    getElements(i).init(vm, initValue);
 }
 
-Array::Array(VM vm, size_t width, StaticArray<UnstableNode> _elements,
-             GR gr, Self from):
-  WithHome(vm, gr, from->home()) {
+Array::Array(VM vm, size_t width, GR gr, Array& from):
+  WithHome(vm, gr, from) {
 
   _width = width;
-  _low = from->_low;
+  _low = from._low;
 
-  for (size_t i = 0; i < width; i++)
-    gr->copyUnstableNode(_elements[i], from[i]);
+  gr->copyUnstableNodes(getElementsArray(), from.getElementsArray(), width);
 }
 
-UnstableNode Array::getValueAt(Self self, VM vm, nativeint feature) {
-  return { vm, self[indexToOffset(feature)] };
+UnstableNode Array::getValueAt(VM vm, nativeint feature) {
+  return { vm, getElements(indexToOffset(feature)) };
 }
 
-UnstableNode Array::arrayLow(Self self, VM vm) {
+UnstableNode Array::arrayLow(VM vm) {
   return mozart::build(vm, getLow());
 }
 
-UnstableNode Array::arrayHigh(Self self, VM vm) {
+UnstableNode Array::arrayHigh(VM vm) {
   return mozart::build(vm, getHigh());
 }
 
-UnstableNode Array::arrayGet(Self self, VM vm, RichNode index) {
-  return { vm, self[getOffset(self, vm, index)] };
+UnstableNode Array::arrayGet(RichNode self, VM vm, RichNode index) {
+  return { vm, getElements(getOffset(self, vm, index)) };
 }
 
-void Array::arrayPut(Self self, VM vm, RichNode index, RichNode value) {
+void Array::arrayPut(RichNode self, VM vm, RichNode index, RichNode value) {
   if (!isHomedInCurrentSpace(vm))
     raise(vm, MOZART_STR("globalState"), MOZART_STR("array"));
 
-  self[getOffset(self, vm, index)].copy(vm, value);
+  getElements(getOffset(self, vm, index)).copy(vm, value);
 }
 
-UnstableNode Array::arrayExchange(Self self, VM vm, RichNode index,
+UnstableNode Array::arrayExchange(RichNode self, VM vm, RichNode index,
                                   RichNode newValue) {
   if (!isHomedInCurrentSpace(vm))
     raise(vm, MOZART_STR("globalState"), MOZART_STR("array"));
 
-  size_t offset = getOffset(self, vm, index);
+  auto& element = getElements(getOffset(self, vm, index));
 
-  auto oldValue = std::move(self[offset]);
-  self[offset].copy(vm, newValue);
+  auto oldValue = std::move(element);
+  element.copy(vm, newValue);
   return oldValue;
 }
 
-size_t Array::getOffset(Self self, VM vm, RichNode index) {
+size_t Array::getOffset(RichNode self, VM vm, RichNode index) {
   auto indexIntValue = getArgument<nativeint>(vm, index, MOZART_STR("integer"));
 
   if (!isIndexInRange(indexIntValue))
@@ -103,7 +100,7 @@ size_t Array::getOffset(Self self, VM vm, RichNode index) {
   return indexToOffset(indexIntValue);
 }
 
-void Array::printReprToStream(Self self, VM vm, std::ostream& out, int depth) {
+void Array::printReprToStream(VM vm, std::ostream& out, int depth, int width) {
   out << "<Array " << getLow() << ".." << getHigh() << ">";
 }
 

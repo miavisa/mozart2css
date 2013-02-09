@@ -63,7 +63,16 @@ struct ImplemMethodDef {
   }
 
   void parseTheFunction() {
-    parseFunction(function, name, resultType, formals, actuals, hasSelfParam);
+    std::string reflectActuals;
+    parseFunction(function, name, resultType, formals, actuals,
+                  reflectActuals, hasSelfParam);
+  }
+
+  bool isRedefinitionOf(const ImplemMethodDef& other) {
+    return (hasSelfParam == other.hasSelfParam) &&
+      (name == other.name) &&
+      (resultType == other.resultType) &&
+      (formals == other.formals);
   }
 
   const FunctionDecl* function;
@@ -79,11 +88,11 @@ struct ImplemMethodDef {
 struct ImplementationDef {
   ImplementationDef() {
     name = "";
-    copyable = false;
     transient = false;
     feature = false;
     storageKind = skDefault;
     storage = "";
+    storageElement = "";
     structuralBehavior = sbTokenEq;
     bindingPriority = 0;
     withHome = false;
@@ -91,8 +100,19 @@ struct ImplementationDef {
     hasUUID = false;
     hasGetTypeAtom = false;
     hasPrintReprToStream = false;
+    hasSerialize = false;
+    hasGlobalize = false;
     autoGCollect = true;
     autoSClone = true;
+  }
+
+  void computeProperties() {
+    if ((storageKind == skCustom) && (structuralBehavior == sbValue)) {
+      copyable = "(! ::mozart::MemWord::requiresExternalMemory<" +
+        storage + ">())";
+    } else {
+      copyable = "false";
+    }
   }
 
   void makeOutputDeclBefore(llvm::raw_fd_ostream& to);
@@ -100,11 +120,12 @@ struct ImplementationDef {
   void makeOutput(llvm::raw_fd_ostream& to);
 
   std::string name;
-  bool copyable;
+  std::string copyable;
   bool transient;
   bool feature;
   StorageKind storageKind;
   std::string storage;
+  std::string storageElement;
   StructuralBehavior structuralBehavior;
   unsigned char bindingPriority;
   bool withHome;
@@ -112,6 +133,8 @@ struct ImplementationDef {
   bool hasUUID;
   bool hasGetTypeAtom;
   bool hasPrintReprToStream;
+  bool hasSerialize;
+  bool hasGlobalize;
   bool autoGCollect;
   bool autoSClone;
   std::vector<ImplemMethodDef> methods;
@@ -177,6 +200,10 @@ void collectMethods(ImplementationDef& definition, const ClassDecl* CD) {
 
       if (function->getNameAsString() == "printReprToStream")
         definition.hasPrintReprToStream = true;
+      else if (function->getNameAsString() == "serialize")
+        definition.hasSerialize = true;
+      else if (function->getNameAsString() == "globalize")
+        definition.hasGlobalize = true;
       else if (function->getNameAsString() == "compareFeatures")
         definition.feature = true;
 
@@ -185,7 +212,17 @@ void collectMethods(ImplementationDef& definition, const ClassDecl* CD) {
 
       method.parseTheFunction();
 
-      definition.methods.push_back(method);
+      bool redefinition = false;
+      for (auto iter = definition.methods.begin();
+           iter != definition.methods.end(); ++iter) {
+        if (method.isRedefinitionOf(*iter)) {
+          redefinition = true;
+          break;
+        }
+      }
+
+      if (!redefinition)
+        definition.methods.push_back(method);
     }
   }
 }
@@ -201,17 +238,16 @@ void handleImplementation(const std::string& outputDir, const ClassDecl* CD) {
     CXXRecordDecl* marker = iter->getType()->getAsCXXRecordDecl();
     std::string markerLabel = marker->getNameAsString();
 
-    if (markerLabel == "Copyable") {
-      definition.copyable = true;
-    } else if (markerLabel == "Transient") {
+    if (markerLabel == "Transient") {
       definition.transient = true;
     } else if (markerLabel == "StoredAs") {
       definition.storageKind = skCustom;
       definition.storage = getTypeParamAsString(marker, false);
     } else if (markerLabel == "StoredWithArrayOf") {
       definition.storageKind = skWithArray;
+      definition.storageElement = getTypeParamAsString(marker, false);
       definition.storage = "ImplWithArray<" + name + ", " +
-        getTypeParamAsString(marker, false) + ">";
+        definition.storageElement + ">";
     } else if (markerLabel == "WithValueBehavior") {
       definition.structuralBehavior = sbValue;
     } else if (markerLabel == "WithStructuralBehavior") {
@@ -244,6 +280,9 @@ void handleImplementation(const std::string& outputDir, const ClassDecl* CD) {
     }
   }
 
+  // Compute other properties
+  definition.computeProperties();
+
   // Write output
   withFileOutputStream(outputDir + name + "-implem-decl.hh",
     [&] (ostream& to) { definition.makeOutputDeclBefore(to); });
@@ -256,20 +295,21 @@ void handleImplementation(const std::string& outputDir, const ClassDecl* CD) {
 }
 
 void ImplementationDef::makeOutputDeclBefore(llvm::raw_fd_ostream& to) {
+  to << "class " << name << ";\n";
+
   if (storageKind != skDefault) {
+    to << "\n";
     to << "template <>\n";
     to << "class Storage<" << name << "> {\n";
     to << "public:\n";
     to << "  typedef " << storage << " Type;\n";
-    to << "};\n\n";
+    to << "};\n";
   }
 }
 
 void ImplementationDef::makeOutputDeclAfter(llvm::raw_fd_ostream& to) {
   to << "template <>\n";
   to << "class TypeInfoOf<" << name << ">: public " << base << " {\n";
-  to << "private:\n";
-  to << "  typedef SelfType<" << name << ">::Self Self;\n";
   to << "\n";
   to << "  static constexpr UUID uuid() {\n";
   if (hasUUID)
@@ -279,7 +319,7 @@ void ImplementationDef::makeOutputDeclAfter(llvm::raw_fd_ostream& to) {
   to << "  }\n";
   to << "public:\n";
   to << "  TypeInfoOf() : " << base << "(\"" << name << "\", uuid(), "
-     << b2s(copyable) << ", " << b2s(transient) << ", " << b2s(feature) << ", "
+     << copyable << ", " << b2s(transient) << ", " << b2s(feature) << ", "
      << sb2s(structuralBehavior) << ", " << ((int) bindingPriority)
      << ") {}\n";
   to << "\n";
@@ -302,7 +342,19 @@ void ImplementationDef::makeOutputDeclAfter(llvm::raw_fd_ostream& to) {
     to << "\n";
     to << "  inline\n";
     to << "  void printReprToStream(VM vm, RichNode self, std::ostream& out,\n";
-    to << "                         int depth) const;\n";
+    to << "                         int depth, int width) const;\n";
+  }
+
+  if (hasSerialize) {
+    to << "\n";
+    to << "  inline\n";
+    to << "  UnstableNode serialize(VM vm, SE s, RichNode from) const;\n";
+  }
+
+  if (hasGlobalize) {
+    to << "\n";
+    to << "  inline\n";
+    to << "  GlobalNode* globalize(VM vm, RichNode from) const;\n";
   }
 
   if (autoGCollect) {
@@ -334,10 +386,22 @@ void ImplementationDef::makeOutputDeclAfter(llvm::raw_fd_ostream& to) {
   to << "\n";
 
   to << "template <>\n";
-  to << "class TypedRichNode<" << name << "> "
-     << ": public BaseTypedRichNode<" << name << "> {\n";
+  to << "class TypedRichNode<" << name << ">: public BaseTypedRichNode {\n";
   to << "public:\n";
-  to << "  TypedRichNode(Self self) : BaseTypedRichNode(self) {}\n";
+  to << "  explicit TypedRichNode(RichNode self) : BaseTypedRichNode(self) {}\n";
+
+  // Hack to include methods in DataTypeStorageHelper
+  if (storageKind == skWithArray) {
+    to << "\n";
+    to << "  inline\n";
+    to << "  size_t getArraySize();\n";
+    to << "\n";
+    to << "  inline\n";
+    to << "  StaticArray<" << storageElement << "> getElementsArray();\n";
+    to << "\n";
+    to << "  inline\n";
+    to << "  " << storageElement << "& getElements(size_t i);\n";
+  }
 
   for (auto method = methods.begin(); method != methods.end(); ++method) {
     to << "\n";
@@ -359,19 +423,34 @@ void ImplementationDef::makeOutputDeclAfter(llvm::raw_fd_ostream& to) {
 void ImplementationDef::makeOutput(llvm::raw_fd_ostream& to) {
   std::string className = std::string("TypeInfoOf<") + name + ">";
 
-  std::string _selfArrow;
-  if (storageKind == skCustom)
-    _selfArrow = "_self.get().";
-  else
-    _selfArrow = "_self->";
+  std::string access = "_self.access<" + name + ">().";
 
   if (hasPrintReprToStream) {
     to << "\n";
     to << "void " << className
        << "::printReprToStream(VM vm, RichNode self, std::ostream& out,\n";
-    to << "                    int depth) const {\n";
+    to << "                    int depth, int width) const {\n";
     to << "  assert(self.is<" << name << ">());\n";
-    to << "  self.as<" << name << ">().printReprToStream(vm, out, depth);\n";
+    to << "  self.as<" << name
+       << ">().printReprToStream(vm, out, depth, width);\n";
+    to << "}\n";
+  }
+
+  if (hasSerialize) {
+    to << "\n";
+    to << "UnstableNode " << className
+       << "::serialize(VM vm, SE s, RichNode from) const {\n";
+    to << "  assert(from.is<" << name << ">());\n";
+    to << "  return from.as<" << name << ">().serialize(vm, s);\n";
+    to << "}\n";
+  }
+
+  if (hasGlobalize) {
+    to << "\n";
+    to << "GlobalNode* " << className
+       << "::globalize(VM vm, RichNode from) const {\n";
+    to << "  assert(from.is<" << name << ">());\n";
+    to << "  return from.as<" << name << ">().globalize(vm);\n";
     to << "}\n";
   }
 
@@ -409,6 +488,24 @@ void ImplementationDef::makeOutput(llvm::raw_fd_ostream& to) {
     to << "}\n\n";
   }
 
+  // Hack to include methods in DataTypeStorageHelper
+  if (storageKind == skWithArray) {
+    to << "\n";
+    to << "size_t TypedRichNode<" << name << ">::getArraySize() {\n";
+    to << "  return " << access << "getArraySize();\n";
+    to << "}\n";
+    to << "\n";
+    to << "StaticArray<" << storageElement << "> TypedRichNode<"
+       << name << ">::getElementsArray() {\n";
+    to << "  return " << access << "getElementsArray();\n";
+    to << "}\n";
+    to << "\n";
+    to << "" << storageElement << "& TypedRichNode<"
+       << name << ">::getElements(size_t i) {\n";
+    to << "  return " << access << "getElements(i);\n";
+    to << "}\n";
+  }
+
   for (auto method = methods.begin(); method != methods.end(); ++method) {
     to << "\n";
 
@@ -426,7 +523,10 @@ void ImplementationDef::makeOutput(llvm::raw_fd_ostream& to) {
     if (!method->function->getResultType().getTypePtr()->isVoidType())
       to << "return ";
 
-    to << _selfArrow << method->name << "(";
+    to << access << method->name;
+    if (method->funTemplate != nullptr)
+      printActualTemplateParameters(to, method->funTemplate->getTemplateParameters());
+    to << "(";
 
     if (method->hasSelfParam) {
       to << "_self";
@@ -445,7 +545,6 @@ void ImplementationDef::makeOutput(llvm::raw_fd_ostream& to) {
 void ImplementationDef::makeContentsOfAutoGCollect(llvm::raw_fd_ostream& to,
                                                    bool toStableNode) {
   to << "  assert(from.type() == type());\n";
-  to << "  Self fromAsSelf = from;\n";
 
   std::string toPrefix = "to.";
 
@@ -457,8 +556,8 @@ void ImplementationDef::makeContentsOfAutoGCollect(llvm::raw_fd_ostream& to,
 
   to << "  " << toPrefix << "make<" << name << ">(gc->vm, ";
   if (storageKind == skWithArray)
-    to << "fromAsSelf.getArraySize(), ";
-  to << "gc, fromAsSelf);\n";
+    to << "from.as<" << name << ">().getArraySize(), ";
+  to << "gc, from.access<" << name << ">());\n";
 }
 
 void ImplementationDef::makeContentsOfAutoSClone(llvm::raw_fd_ostream& to,
@@ -467,8 +566,8 @@ void ImplementationDef::makeContentsOfAutoSClone(llvm::raw_fd_ostream& to,
 
   std::string cloneStatement = std::string("make<") + name + ">(sc->vm, ";
   if (storageKind == skWithArray)
-    cloneStatement += "fromAsSelf.getArraySize(), ";
-  cloneStatement += "sc, fromAsSelf);";
+    cloneStatement += "from.as<" + name + ">().getArraySize(), ";
+  cloneStatement += "sc, from.access<" + name + ">());";
 
   if (!toStableNode && requiresStableNodeInGR()) {
     cloneStatement = std::string("stable->") + cloneStatement;
@@ -480,11 +579,7 @@ void ImplementationDef::makeContentsOfAutoSClone(llvm::raw_fd_ostream& to,
   }
 
   if (withHome) {
-    to << "  Self fromAsSelf = from;\n";
-    if (storageKind == skCustom)
-      to << "  if (fromAsSelf.get().home()->shouldBeCloned()) {\n";
-    else
-      to << "  if (fromAsSelf->home()->shouldBeCloned()) {\n";
+    to << "  if (from.as<" << name << ">().home()->shouldBeCloned()) {\n";
     to << "    " << cloneStatement << "\n";
     to << "  } else {\n";
     to << "    to.init(sc->vm, from);\n";
@@ -493,7 +588,6 @@ void ImplementationDef::makeContentsOfAutoSClone(llvm::raw_fd_ostream& to,
     switch (this->structuralBehavior) {
       case sbValue:
       case sbStructural: {
-        to << "  Self fromAsSelf = from;\n";
         to << "  " << cloneStatement << "\n";
         break;
       }

@@ -77,25 +77,14 @@ void StableNode::init(VM vm) {
   make<Unit>(vm);
 }
 
+template <typename T>
+void StableNode::init(VM vm, T&& from) {
+  set(mozart::build(vm, std::forward<T>(from)));
+}
+
 //////////////////
 // UnstableNode //
 //////////////////
-
-void UnstableNode::init(VM vm, StableNode& from) {
-  copy(vm, from);
-}
-
-void UnstableNode::init(VM vm, UnstableNode& from) {
-  copy(vm, from);
-}
-
-void UnstableNode::init(VM vm, UnstableNode&& from) {
-  copy(vm, std::move(from));
-}
-
-void UnstableNode::init(VM vm, RichNode from) {
-  copy(vm, from);
-}
 
 void UnstableNode::init(VM vm) {
   make<Unit>(vm);
@@ -128,6 +117,11 @@ void UnstableNode::copy(VM vm, RichNode from) {
     copy(vm, from.asStable());
   else
     copy(vm, from.asUnstable());
+}
+
+template <typename T>
+void UnstableNode::copy(VM vm, T&& from) {
+  set(mozart::build(vm, std::forward<T>(from)));
 }
 
 //////////////
@@ -214,7 +208,9 @@ void RichNode::ensureStable(VM vm) {
 }
 
 void RichNode::reinit(VM vm, StableNode& from) {
-  if (from.isCopyable()) {
+  if (node() == &from) {
+    // do nothing
+  } else if (from.isCopyable()) {
     node()->set(from);
   } else {
     node()->make<Reference>(vm, &from);
@@ -222,7 +218,9 @@ void RichNode::reinit(VM vm, StableNode& from) {
 }
 
 void RichNode::reinit(VM vm, UnstableNode& from) {
-  if (isStable()) {
+  if (node() == &from) {
+    // do nothing
+  } else if (isStable()) {
     asStable().init(vm, from);
   } else {
     asUnstable().init(vm, from);
@@ -267,11 +265,47 @@ StableNode* RichNode::dereferenceLoop(StableNode* node) {
 }
 
 StableNode* RichNode::destOf(Node* node) {
-  // TODO Can we get away without this ugly thing?
-  typedef typename Storage<Reference>::Type StorageType;
-  typedef Accessor<Reference, StorageType> Access;
+  return node->access<Reference>().dest();
+}
 
-  return Access::get(node->value()).dest();
+////////////////
+// GlobalNode //
+////////////////
+
+GlobalNode::GlobalNode(UUID uuid): uuid(uuid), left(nullptr), right(nullptr) {
+}
+
+template <class Self, class Proto>
+GlobalNode* GlobalNode::make(VM vm, const UUID& uuid,
+                             Self&& self, Proto&& proto) {
+  GlobalNode* result;
+  GlobalNode::get(vm, uuid, result);
+  result->self.init(vm, std::forward<Self>(self));
+  result->protocol.init(vm, std::forward<Proto>(proto));
+  return result;
+}
+
+template <class Self, class Proto>
+GlobalNode* GlobalNode::make(VM vm, Self&& self, Proto&& proto) {
+  return make(vm, vm->genUUID(), std::forward<Self>(self),
+              std::forward<Proto>(proto));
+}
+
+bool GlobalNode::get(VM vm, UUID uuid, GlobalNode*& to) {
+  GlobalNode** cur = &(vm->rootGlobalNode);
+  while (true) {
+    if (!*cur) {
+      to = *cur = new (vm) GlobalNode(uuid);
+      return false;
+    } else if ((*cur)->uuid < uuid) {
+      cur = &((*cur)->right);
+    } else if ((*cur)->uuid > uuid) {
+      cur = &((*cur)->left);
+    } else {
+      to = *cur;
+      return true;
+    }
+  }
 }
 
 }

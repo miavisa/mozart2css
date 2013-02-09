@@ -45,7 +45,7 @@ public:
   public:
     Is(): Builtin("is") {}
 
-    void operator()(VM vm, In value, Out result) {
+    static void call(VM vm, In value, Out result) {
       result = build(vm, Numeric(value).isInt(vm));
     }
   };
@@ -54,7 +54,7 @@ public:
   public:
     Div(): Builtin("div") {}
 
-    void operator()(VM vm, In left, In right, Out result) {
+    static void call(VM vm, In left, In right, Out result) {
       result = Numeric(left).div(vm, right);
     }
   };
@@ -63,7 +63,7 @@ public:
   public:
     Mod(): Builtin("mod") {}
 
-    void operator()(VM vm, In left, In right, Out result) {
+    static void call(VM vm, In left, In right, Out result) {
       result = Numeric(left).mod(vm, right);
     }
   };
@@ -72,8 +72,8 @@ public:
   public:
     Plus1(): Builtin("+1") {}
 
-    void operator()(VM vm, In operand, Out result) {
-      result = IntegerValue(operand).addValue(vm, 1);
+    static void call(VM vm, In operand, Out result) {
+      result = Numeric(operand).add(vm, 1);
     }
   };
 
@@ -81,8 +81,8 @@ public:
   public:
     Minus1(): Builtin("-1") {}
 
-    void operator()(VM vm, In operand, Out result) {
-      result = IntegerValue(operand).addValue(vm, -1);
+    static void call(VM vm, In operand, Out result) {
+      result = Numeric(operand).add(vm, -1);
     }
   };
 };

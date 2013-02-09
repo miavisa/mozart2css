@@ -127,8 +127,9 @@ void Space::constructor(VM vm, bool isTopLevel, Space* parent) {
   threadCount = 0;
   cascadedRunnableThreadCount = 0;
 
-  // constraint space initialization
+#ifdef VM_HAS_CSS
   _cstSpace = nullptr;
+#endif
 }
 
 Space::Space(GR gr, Space* from) {
@@ -194,7 +195,9 @@ Space::Space(GR gr, Space* from) {
   // constraint space initialization
   // TODO: in this constructor Should I create a clone of the constraint
   // space that is insidefrom?
-  _cstSpace = nullptr; 
+#ifdef VM_HAS_CSS
+  _cstSpace = nullptr;
+#endif
 }
 
 // Status

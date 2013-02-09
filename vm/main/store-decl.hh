@@ -28,7 +28,8 @@
 #include "core-forward-decl.hh"
 #include "type-decl.hh"
 #include "memword.hh"
-#include "storage.hh"
+#include "storage-decl.hh"
+#include "uuid-decl.hh"
 
 #include <string>
 
@@ -56,28 +57,23 @@ private:
   friend class Space;
 
   template <class T>
-  friend class BaseSelf;
-
-  template <class T>
-  friend class WritableSelfType;
-
-  template <class T>
   friend class TypeInfoOf;
 
   Node() {}
 
   template<class T, class... Args>
   void make(VM vm, Args&&... args) {
-    typedef Accessor<T, typename Storage<T>::Type> Access;
-    Access::init(data.type, data.value, vm, std::forward<Args>(args)...);
+    Accessor<T>::init(data.type, data.value, vm, std::forward<Args>(args)...);
   }
 
   Type type() {
     return data.type;
   }
 
-  MemWord value() {
-    return data.value;
+  template <typename T>
+  __attribute__((always_inline))
+  auto access() -> decltype(Accessor<T>::get(std::declval<MemWord>())) {
+    return Accessor<T>::get(data.value);
   }
 
   bool isCopyable() {
@@ -229,6 +225,13 @@ public:
     return node() == right.node();
   }
 
+  template <typename T>
+  void become(VM vm, T&& value) {
+    assert((type().getStructuralBehavior() == sbTokenEq) ||
+           (type().getStructuralBehavior() == sbVariable));
+    reinit(vm, std::forward<T>(value));
+  }
+
   inline
   std::string toDebugString();
 private:
@@ -245,20 +248,25 @@ private:
   static StableNode* destOf(Node* node);
 private:
   template <class T>
-  friend class BaseSelf;
+  friend class TypedRichNode;
+
+  template <typename T>
+  friend class TypeInfoOf;
 
   friend class GarbageCollector;
   friend class SpaceCloner;
   friend struct StructuralDualWalk;
+  friend class Serializer;
 
   inline void reinit(VM vm, StableNode& from);
   inline void reinit(VM vm, UnstableNode& from);
   inline void reinit(VM vm, UnstableNode&& from);
   inline void reinit(VM vm, RichNode from);
 
+  template <typename T>
   __attribute__((always_inline))
-  MemWord value() {
-    return node()->value();
+  auto access() -> decltype(std::declval<Node>().access<T>()) {
+    return node()->access<T>();
   }
 private:
   friend class StableNode;
@@ -295,11 +303,19 @@ class StableNode: public Node {
 public:
   StableNode() {}
 
+  template <typename T>
+  StableNode(VM vm, T&& from) {
+    init(vm, std::forward<T>(from));
+  }
+
   inline void init(VM vm, StableNode& from);
   inline void init(VM vm, UnstableNode& from);
   inline void init(VM vm, UnstableNode&& from);
   inline void init(VM vm, RichNode from);
   inline void init(VM vm);
+
+  template <typename T>
+  inline void init(VM vm, T&& from);
 public:
   // Make this class non-copyable and non-movable
   StableNode(const StableNode& from) = delete;
@@ -316,28 +332,25 @@ class UnstableNode: public Node {
 public:
   UnstableNode() {}
 
-  UnstableNode(VM vm, StableNode& from) {
-    copy(vm, from);
+  template <typename T>
+  UnstableNode(VM vm, T&& from) {
+    init(vm, std::forward<T>(from));
   }
 
-  UnstableNode(VM vm, UnstableNode& from) {
-    copy(vm, from);
-  }
-
-  UnstableNode(VM vm, RichNode from) {
-    copy(vm, from);
-  }
-
-  inline void init(VM vm, StableNode& from);
-  inline void init(VM vm, UnstableNode& from);
-  inline void init(VM vm, UnstableNode&& from);
-  inline void init(VM vm, RichNode from);
   inline void init(VM vm);
+
+  template <typename T>
+  void init(VM vm, T&& from) {
+    copy(vm, std::forward<T>(from));
+  }
 
   inline void copy(VM vm, StableNode& from);
   inline void copy(VM vm, UnstableNode& from);
   inline void copy(VM vm, UnstableNode&& from);
   inline void copy(VM vm, RichNode from);
+
+  template <typename T>
+  inline void copy(VM vm, T&& from);
 
   template<class T, class... Args>
   static UnstableNode build(VM vm, Args&&... args) {
@@ -356,155 +369,86 @@ public:
 };
 
 /**
- * Base class for Self types
+ * Global node, which can be present in others VMs, pickles, etc.
  */
-template <class T>
-class BaseSelf {
-protected:
-  typedef typename Storage<T>::Type StorageType;
-  typedef Accessor<T, StorageType> Access;
-public:
-  BaseSelf(RichNode node) : _node(node) {}
-
-  template<class U>
-  void become(VM vm, U&& from) {
-    _node.reinit(vm, std::forward<U>(from));
-  }
-
-  operator RichNode() {
-    return _node;
-  }
-protected:
-  auto getBase() -> decltype(Access::get(std::declval<MemWord>())) {
-    return Access::get(_node.value());
-  }
+class GlobalNode {
 private:
-  RichNode _node;
-};
+  inline
+  GlobalNode(UUID uuid);
 
-/**
- * Self type for custom storage-based types
- */
-template <class T>
-class CustomStorageSelf: public BaseSelf<T> {
 public:
-  CustomStorageSelf(RichNode node) : BaseSelf<T>(node) {}
+  template <typename Self, typename Proto>
+  inline
+  static GlobalNode* make(VM vm, const UUID& uuid, Self&& self, Proto&& proto);
 
-  T get() {
-    return this->getBase();
-  }
-};
+  template <typename Self, typename Proto>
+  inline
+  static GlobalNode* make(VM vm, Self&& self, Proto&& proto);
 
-/**
- * Self type for default storage-based types
- */
-template <class T>
-class DefaultStorageSelf: public BaseSelf<T> {
+  inline
+  static bool get(VM vm, UUID uuid, GlobalNode*& to);
+
 public:
-  DefaultStorageSelf(RichNode node) : BaseSelf<T>(node) {}
+  UUID uuid;
+  StableNode self;
+  StableNode protocol;
 
-  T* operator->() {
-    return &this->getBase();
-  }
-};
-
-/**
- * Extractor function for the template parameters of ImplWithArray
- * Given
- *   typedef ImplWithArray<I, E> T;
- * this provides
- *   ExtractImplWithArray<T>::Impl === I
- *   ExtractImplWithArray<T>::Elem === E
- */
-template <class S>
-struct ExtractImplWithArray {};
-
-template <class I, class E>
-struct ExtractImplWithArray<ImplWithArray<I, E>> {
-  typedef I Impl;
-  typedef E Elem;
-};
-
-/**
- * Self type for ImplWithArray-based types
- */
-template <class T>
-class ImplWithArraySelf: public BaseSelf<T> {
 private:
-  typedef typename BaseSelf<T>::StorageType StorageType;
-  typedef typename ExtractImplWithArray<StorageType>::Elem Elem;
-public:
-  ImplWithArraySelf(RichNode node) : BaseSelf<T>(node) {}
-
-  T* operator->() {
-    return get().operator->();
-  }
-
-  Elem& operator[](size_t i) {
-    return get().operator[](i);
-  }
-
-  size_t getArraySize() {
-    return get()->getArraySize();
-  }
-
-  StaticArray<Elem> getArray() {
-    return get().getArray(getArraySize());
-  }
-private:
-  ImplWithArray<T, Elem> get() {
-    return ImplWithArray<T, Elem>(&this->getBase());
-  }
-};
-
-/**
- * Helper for the metafunction SelfType
- */
-template <class T, class S>
-struct SelfTypeInner {
-  typedef CustomStorageSelf<T> Self;
-};
-
-/**
- * Helper for the metafunction SelfType
- */
-template <class T>
-struct SelfTypeInner<T, DefaultStorage<T>> {
-  typedef DefaultStorageSelf<T> Self;
-};
-
-/**
- * Helper for the metafunction SelfType
- */
-template <class T, class I, class E>
-struct SelfTypeInner<T, ImplWithArray<I, E>> {
-  typedef ImplWithArraySelf<T> Self;
-};
-
-/**
- * Metafunction from type to its Self type
- * Use as SelfType<T>::Self
- */
-template <class T>
-struct SelfType {
-  typedef typename SelfTypeInner<T, typename Storage<T>::Type>::Self Self;
+  GlobalNode* left;
+  GlobalNode* right;
 };
 
 /**
  * Base class for specializations of TypedRichNode<T>
  */
-template <class T>
 class BaseTypedRichNode {
-protected:
-  typedef typename SelfType<T>::Self Self;
 public:
-  BaseTypedRichNode(Self self) : _self(self) {}
+  explicit BaseTypedRichNode(RichNode self) : _self(self) {}
 
   operator RichNode() {
     return _self;
   }
 protected:
-  Self _self;
+  RichNode _self;
+};
+
+/**
+ * The returned value of 'vm->protect()', a node protected from GC.
+ * This really is a std::shared_ptr<StableNode*>, but for convenience the
+ * * and -> operators dereference twice to get at the StableNode&.
+ * A ProtectedNode can be implictly converted back and forth to a genuine
+ * std::shared_ptr<StableNode*>.
+ */
+class ProtectedNode {
+public:
+  ProtectedNode() {}
+  ProtectedNode(std::nullptr_t): _node(nullptr) {}
+
+  ProtectedNode(std::shared_ptr<StableNode*>&& from): _node(std::move(from)) {}
+  ProtectedNode(const std::shared_ptr<StableNode*>& from): _node(from) {}
+
+  operator std::shared_ptr<StableNode*>() const {
+    return { _node };
+  }
+
+  StableNode& operator*() const {
+    return **_node;
+  }
+
+  StableNode* operator->() const {
+    return *_node;
+  }
+
+  explicit operator bool() const {
+    return (bool) _node;
+  }
+
+  void reset() {
+    _node.reset();
+  }
+
+private:
+  std::shared_ptr<StableNode*> _node;
 };
 
 }

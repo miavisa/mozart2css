@@ -29,116 +29,92 @@
 
 namespace mozart {
 
-class Float;
-
 #ifndef MOZART_GENERATOR
 #include "Float-implem-decl.hh"
 #endif
 
 class Float: public DataType<Float>,
-  Copyable, StoredAs<double>, WithValueBehavior {
-public:
-  typedef SelfType<Float>::Self Self;
+  StoredAs<double>, WithValueBehavior {
 public:
   static atom_t getTypeAtom(VM vm) {
     return vm->getAtom(MOZART_STR("float"));
   }
 
-  Float(double value) : _value(value) {}
+  explicit Float(double value) : _value(value) {}
 
   static void create(double& self, VM, double value) {
     self = value;
   }
 
   inline
-  static void create(double& self, VM vm, GR gr, Self from);
+  static void create(double& self, VM vm, GR gr, Float from);
 
   double value() const { return _value; }
 
   inline
-  bool equals(VM vm, Self right);
+  bool equals(VM vm, RichNode right);
 
 public:
   // Comparable interface
 
   inline
-  int compare(Self self, VM vm, RichNode right);
-
-public:
-  // FloatValue inteface
-
-  double floatValue(Self self, VM vm) {
-    return value();
-  }
-
-  inline
-  bool equalsFloat(Self self, VM vm, double right);
+  int compare(VM vm, RichNode right);
 
 public:
   // Numeric inteface
 
-  bool isNumber(Self self, VM vm) {
+  bool isNumber(VM vm) {
     return true;
   }
 
-  bool isInt(Self self, VM vm) {
+  bool isInt(VM vm) {
     return false;
   }
 
-  bool isFloat(Self self, VM vm) {
+  bool isFloat(VM vm) {
     return true;
   }
 
   inline
-  UnstableNode opposite(Self self, VM vm);
+  UnstableNode opposite(VM vm);
 
   inline
-  UnstableNode add(Self self, VM vm, RichNode right);
+  UnstableNode add(VM vm, RichNode right);
 
   inline
-  UnstableNode addValue(Self self, VM vm, double b);
+  UnstableNode add(RichNode self, VM vm, nativeint right);
 
   inline
-  UnstableNode subtract(Self self, VM vm, RichNode right);
+  UnstableNode addValue(VM vm, double b);
 
   inline
-  UnstableNode subtractValue(Self self, VM vm, double b);
+  UnstableNode subtract(VM vm, RichNode right);
 
   inline
-  UnstableNode multiply(Self self, VM vm, RichNode right);
+  UnstableNode subtractValue(VM vm, double b);
 
   inline
-  UnstableNode multiplyValue(Self self, VM vm, double b);
+  UnstableNode multiply(VM vm, RichNode right);
 
   inline
-  UnstableNode divide(Self self, VM vm, RichNode right);
+  UnstableNode multiplyValue(VM vm, double b);
 
   inline
-  UnstableNode divideValue(Self self, VM vm, double b);
+  UnstableNode divide(VM vm, RichNode right);
 
   inline
-  UnstableNode div(Self self, VM vm, RichNode right);
+  UnstableNode divideValue(VM vm, double b);
 
   inline
-  UnstableNode mod(Self self, VM vm, RichNode right);
-
-public:
-  // VirtualString inteface
-
-  bool isVirtualString(Self self, VM vm) {
-    return true;
-  }
+  UnstableNode div(RichNode self, VM vm, RichNode right);
 
   inline
-  void toString(Self self, VM vm, std::basic_ostream<nchar>& sink);
-
-  inline
-  nativeint vsLength(Self self, VM vm);
+  UnstableNode mod(RichNode self, VM vm, RichNode right);
 
 public:
   // Miscellaneous
 
-  void printReprToStream(Self self, VM vm, std::ostream& out, int depth) {
+  void printReprToStream(VM vm, std::ostream& out, int depth, int width) {
     out << value();
   }
 private:

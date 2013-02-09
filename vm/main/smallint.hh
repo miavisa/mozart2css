@@ -30,6 +30,10 @@
 #include <string>
 #include <limits>
 
+#ifdef VM_HAS_CSS
+#include <gecode/int.hh>
+#endif
+
 #ifndef MOZART_GENERATOR
 
 namespace mozart {
@@ -40,18 +44,20 @@ namespace mozart {
 
 #include "SmallInt-implem.hh"
 
-void SmallInt::create(nativeint& self, VM vm, GR gr, Self from) {
-  self = from.get().value();
+void SmallInt::create(nativeint& self, VM vm, GR gr, SmallInt from) {
+  self = from.value();
 }
 
-bool SmallInt::equals(VM vm, Self right) {
-  return value() == right.get().value();
+bool SmallInt::equals(VM vm, RichNode right) {
+  return value() == right.as<SmallInt>().value();
 }
 
-int SmallInt::compareFeatures(VM vm, Self right) {
-  if (value() == right.get().value())
+int SmallInt::compareFeatures(VM vm, RichNode right) {
+  auto rhs = right.as<SmallInt>().value();
+
+  if (value() == rhs)
     return 0;
-  else if (value() < right.get().value())
+  else if (value() < rhs)
     return -1;
   else
     return 1;
@@ -59,20 +65,14 @@ int SmallInt::compareFeatures(VM vm, Self right) {
 
 // Comparable ------------------------------------------------------------------
 
-int SmallInt::compare(Self self, VM vm, RichNode right) {
-  auto rightIntValue = getArgument<nativeint>(vm, right, MOZART_STR("integer"));
+int SmallInt::compare(VM vm, RichNode right) {
+  auto rightIntValue = getArgument<nativeint>(vm, right);
   return (value() == rightIntValue) ? 0 : (value() < rightIntValue) ? -1 : 1;
-}
-
-// IntegerValue ----------------------------------------------------------------
-
-bool SmallInt::equalsInteger(Self self, VM vm, nativeint right) {
-  return value() == right;
 }
 
 // Numeric ---------------------------------------------------------------------
 
-UnstableNode SmallInt::opposite(Self self, VM vm) {
+UnstableNode SmallInt::opposite(VM vm) {
   // Detecting overflow - platform dependent (2's complement)
   if (value() != std::numeric_limits<nativeint>::min()) {
     // No overflow
@@ -83,12 +83,11 @@ UnstableNode SmallInt::opposite(Self self, VM vm) {
   }
 }
 
-UnstableNode SmallInt::add(Self self, VM vm, RichNode right) {
-  return addValue(self, vm,
-                  getArgument<nativeint>(vm, right, MOZART_STR("integer")));
+UnstableNode SmallInt::add(VM vm, RichNode right) {
+  return add(vm, getArgument<nativeint>(vm, right));
 }
 
-UnstableNode SmallInt::addValue(Self self, VM vm, nativeint b) {
+UnstableNode SmallInt::add(VM vm, nativeint b) {
   nativeint a = value();
   nativeint c = a + b;
 
@@ -102,12 +101,11 @@ UnstableNode SmallInt::addValue(Self self, VM vm, nativeint b) {
   }
 }
 
-UnstableNode SmallInt::subtract(Self self, VM vm, RichNode right) {
-  return subtractValue(self, vm,
-                       getArgument<nativeint>(vm, right, MOZART_STR("integer")));
+UnstableNode SmallInt::subtract(VM vm, RichNode right) {
+  return subtractValue(vm, getArgument<nativeint>(vm, right));
 }
 
-UnstableNode SmallInt::subtractValue(Self self, VM vm, nativeint b) {
+UnstableNode SmallInt::subtractValue(VM vm, nativeint b) {
   nativeint a = value();
   nativeint c = a - b;
 
@@ -121,9 +119,8 @@ UnstableNode SmallInt::subtractValue(Self self, VM vm, nativeint b) {
   }
 }
 
-UnstableNode SmallInt::multiply(Self self, VM vm, RichNode right) {
-  return multiplyValue(self, vm,
-                       getArgument<nativeint>(vm, right, MOZART_STR("integer")));
+UnstableNode SmallInt::multiply(VM vm, RichNode right) {
+  return multiplyValue(vm, getArgument<nativeint>(vm, right));
 }
 
 bool SmallInt::testMultiplyOverflow(nativeint a, nativeint b) {
@@ -142,7 +139,7 @@ bool SmallInt::testMultiplyOverflow(nativeint a, nativeint b) {
   return (b != 0) && (absa >= std::numeric_limits<nativeint>::max() / absb);
 }
 
-UnstableNode SmallInt::multiplyValue(Self self, VM vm, nativeint b) {
+UnstableNode SmallInt::multiplyValue(VM vm, nativeint b) {
   nativeint a = value();
 
   // Detecting overflow
@@ -155,16 +152,15 @@ UnstableNode SmallInt::multiplyValue(Self self, VM vm, nativeint b) {
   }
 }
 
-UnstableNode SmallInt::divide(Self self, VM vm, RichNode right) {
-  raiseTypeError(vm, MOZART_STR("Float"), self);
+UnstableNode SmallInt::divide(RichNode self, VM vm, RichNode right) {
+  return Interface<Numeric>().divide(self, vm, right);
 }
 
-UnstableNode SmallInt::div(Self self, VM vm, RichNode right) {
-  return divValue(self, vm,
-                  getArgument<nativeint>(vm, right, MOZART_STR("integer")));
+UnstableNode SmallInt::div(VM vm, RichNode right) {
+  return divValue(vm, getArgument<nativeint>(vm, right));
 }
 
-UnstableNode SmallInt::divValue(Self self, VM vm, nativeint b) {
+UnstableNode SmallInt::divValue(VM vm, nativeint b) {
   nativeint a = value();
 
   // Detecting overflow
@@ -177,12 +173,11 @@ UnstableNode SmallInt::divValue(Self self, VM vm, nativeint b) {
   }
 }
 
-UnstableNode SmallInt::mod(Self self, VM vm, RichNode right) {
-  return modValue(self, vm,
-                  getArgument<nativeint>(vm, right, MOZART_STR("integer")));
+UnstableNode SmallInt::mod(VM vm, RichNode right) {
+  return modValue(vm, getArgument<nativeint>(vm, right));
 }
 
-UnstableNode SmallInt::modValue(Self self, VM vm, nativeint b) {
+UnstableNode SmallInt::modValue(VM vm, nativeint b) {
   nativeint a = value();
 
   // Detecting overflow
@@ -195,20 +190,45 @@ UnstableNode SmallInt::modValue(Self self, VM vm, nativeint b) {
   }
 }
 
-// VirtualString ---------------------------------------------------------------
-
-void SmallInt::toString(Self self, VM vm, std::basic_ostream<nchar>& sink) {
-//sink << value();  // doesn't seem to work, don't know why.
-  auto str = std::to_string(value());
-  size_t length = str.length();
-  std::unique_ptr<nchar[]> nStr (new nchar[length]);
-  std::copy(str.begin(), str.end(), nStr.get());
-  sink.write(nStr.get(), length);
+#ifdef VM_HAS_CSS
+// ConstraintVar ------------------------------------------------------------
+bool SmallInt::assigned(VM vm) {
+  if(!isIntVarLike(vm))
+    raiseTypeError(vm, MOZART_STR("ConstraintVar"), value());
+  return true;
+}
+// IntVarLike ---------------------------------------------------------------
+bool SmallInt::isIntVarLike(VM vm) {
+  return (Gecode::Int::Limits::min <= value()) &&
+         (value() <= Gecode::Int::Limits::max); 
 }
 
-nativeint SmallInt::vsLength(Self self, VM vm) {
-  return (nativeint) std::to_string(value()).length();
+UnstableNode SmallInt::min(VM vm) {
+  if(!isIntVarLike(vm))
+    raiseTypeError(vm, MOZART_STR("IntVarLike"),value());
+  return SmallInt::build(vm,value());  
 }
+
+UnstableNode SmallInt::max(VM vm) {
+  if(!isIntVarLike(vm))
+    raiseTypeError(vm, MOZART_STR("IntVarLike"),value());
+  return SmallInt::build(vm,value());  
+}
+
+UnstableNode SmallInt::value(VM vm) {
+  if(!isIntVarLike(vm))
+    raiseTypeError(vm, MOZART_STR("IntVarLike"),value());
+  return SmallInt::build(vm,value());  
+}
+
+UnstableNode SmallInt::isIn(VM vm, RichNode right) {
+  nativeint r = getArgument<nativeint>(vm,right,MOZART_STR("integer"));
+  if (r < Gecode::Int::Limits::min || r > Gecode::Int::Limits::max)
+    raiseTypeError(vm,MOZART_STR("IntVarLike"),right);
+  return r == value() ? 
+         Boolean::build(vm,true) : Boolean::build(vm,false);
+}
+#endif
 
 // IntVarLike ------------------------------------------------------------------
 

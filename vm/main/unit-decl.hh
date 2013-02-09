@@ -31,16 +31,12 @@
 
 namespace mozart {
 
-class Unit;
-
 #ifndef MOZART_GENERATOR
 #include "Unit-implem-decl.hh"
 #endif
 
 class Unit: public DataType<Unit>, public LiteralHelper<Unit>,
-  Copyable, StoredAs<unit_t>, WithValueBehavior {
-public:
-  typedef SelfType<Unit>::Self Self;
+  StoredAs<unit_t>, WithValueBehavior {
 public:
   constexpr static UUID uuid = "{f08642c3-5b42-4f7f-889f-9f43286973b7}";
 
@@ -48,38 +44,35 @@ public:
     return vm->getAtom(MOZART_STR("name")); // compatibility with Mozart 1.4.0
   }
 
-  Unit(unit_t value) {}
+  explicit Unit(unit_t value) {}
 
   static void create(unit_t& self, VM vm) {
   }
 
   inline
-  static void create(unit_t& self, VM vm, GR gr, Self from);
+  static void create(unit_t& self, VM vm, GR gr, Unit from);
 
 public:
   inline
-  bool equals(VM vm, Self right);
+  bool equals(VM vm, RichNode right);
 
   inline
-  int compareFeatures(VM vm, Self right);
+  int compareFeatures(VM vm, RichNode right);
 
 public:
-  // VirtualString inteface
+  // NameLike interface
 
-  bool isVirtualString(Self self, VM vm) {
+  bool isName(VM vm) {
     return true;
   }
-
-  inline
-  void toString(Self self, VM vm, std::basic_ostream<nchar>& sink);
-
-  inline
-  nativeint vsLength(Self self, VM vm);
 
 public:
   // Miscellaneous
 
-  void printReprToStream(Self self, VM vm, std::ostream& out, int depth) {
+  inline
+  UnstableNode serialize(VM vm, SE se);
+
+  void printReprToStream(VM vm, std::ostream& out, int depth, int width) {
     out << "unit";
   }
 };

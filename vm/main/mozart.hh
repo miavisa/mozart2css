@@ -30,7 +30,6 @@
 #include "coredatatypes.hh"
 
 #include "builtins.hh"
-#include "builtinutils.hh"
 #include "coreatoms.hh"
 #include "datatype.hh"
 #include "dynbuilders.hh"
@@ -39,10 +38,12 @@
 #include "gcollect.hh"
 #include "graphreplicator.hh"
 #include "lstring.hh"
+#include "ozcalls.hh"
 #include "properties.hh"
 #include "runnable.hh"
 #include "sclone.hh"
 #include "space.hh"
+#include "storage.hh"
 #include "store.hh"
 #include "threadpool.hh"
 #include "type.hh"
@@ -52,7 +53,6 @@
 #include "utils.hh"
 #include "vm.hh"
 #include "vmallocatedlist.hh"
-#include "protect.hh"
 
 #include "emulate.hh"
 

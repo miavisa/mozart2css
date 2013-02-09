@@ -33,15 +33,11 @@ namespace mozart {
 // Cell //
 //////////
 
-class Cell;
-
 #ifndef MOZART_GENERATOR
 #include "Cell-implem-decl.hh"
 #endif
 
 class Cell: public DataType<Cell>, public WithHome {
-public:
-  typedef SelfType<Cell>::Self Self;
 public:
   static atom_t getTypeAtom(VM vm) {
     return vm->getAtom(MOZART_STR("cell"));
@@ -52,29 +48,29 @@ public:
   }
 
   inline
-  Cell(VM vm, GR gr, Self from);
+  Cell(VM vm, GR gr, Cell& from);
 
 public:
   // CellLike interface
 
-  bool isCell(Self self, VM vm) {
+  bool isCell(VM vm) {
     return true;
   }
 
   inline
-  UnstableNode exchange(RichNode self, VM vm, RichNode newValue);
+  UnstableNode exchange(VM vm, RichNode newValue);
 
   inline
-  UnstableNode access(RichNode self, VM vm);
+  UnstableNode access(VM vm);
 
   inline
-  void assign(RichNode self, VM vm, RichNode newValue);
+  void assign(VM vm, RichNode newValue);
 
 public:
   // Miscellaneous
 
-  void printReprToStream(Self self, VM vm, std::ostream& out, int depth) {
-    out << "<Cell: " << repr(vm, _value, depth) << ">";
+  void printReprToStream(VM vm, std::ostream& out, int depth, int width) {
+    out << "<Cell: " << repr(vm, _value, depth, width) << ">";
   }
 
 private:

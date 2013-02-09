@@ -34,16 +34,12 @@
 
 namespace mozart {
 
-class Atom;
-
 #ifndef MOZART_GENERATOR
 #include "Atom-implem-decl.hh"
 #endif
 
 class Atom: public DataType<Atom>, public LiteralHelper<Atom>,
-  Copyable, StoredAs<atom_t>, WithValueBehavior {
-public:
-  typedef SelfType<Atom>::Self Self;
+  StoredAs<atom_t>, WithValueBehavior {
 public:
   static constexpr UUID uuid = "{55ed333b-1eaf-4c8a-a151-626d3f96efe8}";
 
@@ -51,7 +47,7 @@ public:
     return vm->getAtom(MOZART_STR("atom"));
   }
 
-  Atom(atom_t value) : _value(value) {}
+  explicit Atom(atom_t value) : _value(value) {}
 
   static void create(atom_t& self, VM vm, std::size_t length,
                      const nchar* contents) {
@@ -67,7 +63,7 @@ public:
   }
 
   inline
-  static void create(atom_t& self, VM vm, GR gr, Self from);
+  static void create(atom_t& self, VM vm, GR gr, Atom from);
 
 public:
   atom_t value() const {
@@ -75,15 +71,22 @@ public:
   }
 
   inline
-  bool equals(VM vm, Self right);
+  bool equals(VM vm, RichNode right);
 
   inline
-  int compareFeatures(VM vm, Self right);
+  int compareFeatures(VM vm, RichNode right);
+
+public:
+  // WithPrintName interface
+
+  atom_t getPrintName(VM vm) {
+    return value();
+  }
 
 public:
   // AtomLike interface
 
-  bool isAtom(Self self, VM vm) {
+  bool isAtom(VM vm) {
     return true;
   }
 
@@ -91,26 +94,13 @@ public:
   // Comparable interface
 
   inline
-  int compare(Self self, VM vm, RichNode right);
-
-public:
-  // VirtualString inteface
-
-  bool isVirtualString(Self self, VM vm) {
-    return true;
-  }
-
-  inline
-  void toString(Self self, VM vm, std::basic_ostream<nchar>& sink);
-
-  inline
-  nativeint vsLength(Self self, VM vm);
+  int compare(VM vm, RichNode right);
 
 public:
   // Miscellaneous
 
   inline
-  void printReprToStream(Self self, VM vm, std::ostream& out, int depth);
+  void printReprToStream(VM vm, std::ostream& out, int depth, int width);
 
 private:
   atom_t _value;

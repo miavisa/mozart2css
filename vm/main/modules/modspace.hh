@@ -45,19 +45,12 @@ public:
   public:
     New(): Builtin("new") {}
 
-    void operator()(VM vm, In target, Out result) {
-      expectCallable(vm, target, 1);
-
-      Space* currentSpace = vm->getCurrentSpace();
-
+    static void call(VM vm, In target, Out result) {
       // Create the space
-      Space* space = new (vm) Space(vm, currentSpace);
+      Space* space = new (vm) Space(vm, vm->getCurrentSpace());
 
       // Create the thread {Proc Root}
-      UnstableNode rootVar(vm, *space->getRootVar());
-      UnstableNode* threadArgs[] = { &rootVar };
-
-      new (vm) Thread(vm, space, target, 1, threadArgs);
+      ozcalls::asyncOzCall(vm, space, target, *space->getRootVar());
 
       // Create the reification of the space
       result = ReifiedSpace::build(vm, space);
@@ -68,7 +61,7 @@ public:
   public:
     Is(): Builtin("is") {}
 
-    void operator()(VM vm, In value, Out result) {
+    static void call(VM vm, In value, Out result) {
       result = build(vm, SpaceLike(value).isSpace(vm));
     }
   };
@@ -77,7 +70,7 @@ public:
   public:
     Ask(): Builtin("ask") {}
 
-    void operator()(VM vm, In space, Out result) {
+    static void call(VM vm, In space, Out result) {
       result = SpaceLike(space).askSpace(vm);
     }
   };
@@ -86,7 +79,7 @@ public:
   public:
     AskVerbose(): Builtin("askVerbose") {}
 
-    void operator()(VM vm, In space, Out result) {
+    static void call(VM vm, In space, Out result) {
       result = SpaceLike(space).askVerboseSpace(vm);
     }
   };
@@ -95,7 +88,7 @@ public:
   public:
     Merge(): Builtin("merge") {}
 
-    void operator()(VM vm, In space, Out result) {
+    static void call(VM vm, In space, Out result) {
       result = SpaceLike(space).mergeSpace(vm);
     }
   };
@@ -104,7 +97,7 @@ public:
   public:
     Clone(): Builtin("clone") {}
 
-    void operator()(VM vm, In space, Out result) {
+    static void call(VM vm, In space, Out result) {
       result = SpaceLike(space).cloneSpace(vm);
     }
   };
@@ -113,7 +106,7 @@ public:
   public:
     Commit(): Builtin("commit") {}
 
-    void operator()(VM vm, In space, In value) {
+    static void call(VM vm, In space, In value) {
       return SpaceLike(space).commitSpace(vm, value);
     }
   };
@@ -122,7 +115,7 @@ public:
   public:
     Kill(): Builtin("kill") {}
 
-    void operator()(VM vm, In space) {
+    static void call(VM vm, In space) {
       return SpaceLike(space).killSpace(vm);
     }
   };
@@ -131,7 +124,7 @@ public:
   public:
     Choose(): Builtin("choose") {}
 
-    void operator()(VM vm, In alts, Out result) {
+    static void call(VM vm, In alts, Out result) {
       auto alternatives = getArgument<nativeint>(vm, alts,
                                                  MOZART_STR("integer"));
 

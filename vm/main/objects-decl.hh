@@ -36,8 +36,6 @@ namespace mozart {
 // Object //
 ////////////
 
-class Object;
-
 #ifndef MOZART_GENERATOR
 #include "Object-implem-decl.hh"
 #endif
@@ -47,8 +45,6 @@ class Object;
  */
 class Object: public DataType<Object>, public WithHome,
   StoredWithArrayOf<UnstableNode> {
-public:
-  typedef SelfType<Object>::Self Self;
 private:
   // defined in coredatatypes.cc
   static const ByteCode dispatchByteCode[9];
@@ -58,90 +54,94 @@ public:
   }
 
   inline
-  Object(VM vm, size_t attrCount, StaticArray<UnstableNode> _attributes,
-         RichNode clazz, RichNode attrModel, RichNode featModel);
+  Object(VM vm, size_t attrCount, RichNode clazz,
+         RichNode attrModel, RichNode featModel);
 
   inline
-  Object(VM vm, size_t attrCount, StaticArray<UnstableNode> _attributes,
-         GR gr, Self from);
+  Object(VM vm, size_t attrCount, GR gr, Object& from);
+
+public:
+  // Requirement for StoredWithArrayOf
+  size_t getArraySizeImpl() {
+    return _attrCount;
+  }
+
+public:
+  StableNode* getFeaturesRecord() {
+    return &_features;
+  }
 
 private:
   inline
   bool isFreeFlag(VM vm, RichNode value);
 
 public:
-  size_t getArraySize() {
-    return _attrCount;
-  }
-
-public:
   // Dottable interface
 
   inline
-  bool lookupFeature(Self self, VM vm, RichNode feature,
+  bool lookupFeature(VM vm, RichNode feature,
                      nullable<UnstableNode&> value);
 
   inline
-  bool lookupFeature(Self self, VM vm, nativeint feature,
+  bool lookupFeature(VM vm, nativeint feature,
                      nullable<UnstableNode&> value);
 
 public:
   // ChunkLike interface
 
-  bool isChunk(Self self, VM vm) {
+  bool isChunk(VM vm) {
     return true;
   }
 
 public:
   // ObjectLike interface
 
-  bool isObject(Self self, VM vm) {
+  bool isObject(VM vm) {
     return true;
   }
 
   inline
-  UnstableNode getClass(Self self, VM vm);
+  UnstableNode getClass(VM vm);
 
   inline
-  UnstableNode attrGet(Self self, VM vm, RichNode attribute);
+  UnstableNode attrGet(RichNode self, VM vm, RichNode attribute);
 
   inline
-  void attrPut(Self self, VM vm, RichNode attribute, RichNode value);
+  void attrPut(RichNode self, VM vm, RichNode attribute, RichNode value);
 
   inline
-  UnstableNode attrExchange(Self self, VM vm, RichNode attribute,
+  UnstableNode attrExchange(RichNode self, VM vm, RichNode attribute,
                             RichNode newValue);
 
 private:
   inline
-  size_t getAttrOffset(Self self, VM vm, RichNode attribute);
+  size_t getAttrOffset(RichNode self, VM vm, RichNode attribute);
 
 public:
   // Callable interface
 
-  bool isCallable(Self self, VM vm) {
+  bool isCallable(VM vm) {
     return true;
   }
 
-  bool isProcedure(Self self, VM vm) {
+  bool isProcedure(VM vm) {
     return false;
   }
 
   inline
-  size_t procedureArity(Self self, VM vm);
+  size_t procedureArity(RichNode self, VM vm);
 
   inline
-  void getCallInfo(Self self, VM vm, size_t& arity,
+  void getCallInfo(RichNode self, VM vm, size_t& arity,
                    ProgramCounter& start, size_t& Xcount,
                    StaticArray<StableNode>& Gs,
                    StaticArray<StableNode>& Ks);
 
   inline
-  void getDebugInfo(Self self, VM vm,
-                    atom_t& printName, UnstableNode& debugData);
+  void getDebugInfo(VM vm, atom_t& printName, UnstableNode& debugData);
 
 public:
-  void printReprToStream(Self self, VM vm, std::ostream& out, int depth) {
+  void printReprToStream(VM vm, std::ostream& out, int depth, int width) {
     out << "<Object>";
   }
 

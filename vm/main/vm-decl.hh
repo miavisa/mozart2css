@@ -26,6 +26,7 @@
 #define __VM_DECL_H
 
 #include <cstdlib>
+#include <forward_list>
 
 #include "core-forward-decl.hh"
 
@@ -42,9 +43,36 @@
 #include "atomtable.hh"
 #include "coreatoms-decl.hh"
 #include "properties-decl.hh"
-#include "protect-decl.hh"
 
 namespace mozart {
+
+///////////////////
+// BuiltinModule //
+///////////////////
+
+class BuiltinModule {
+public:
+  inline
+  BuiltinModule(VM vm, const nchar* name);
+
+  virtual ~BuiltinModule() {}
+
+  atom_t getName() {
+    return _name;
+  }
+
+  StableNode& getModule() {
+    return *_module;
+  }
+protected:
+  template <typename T>
+  inline
+  void initModule(VM vm, T&& module);
+private:
+  VM _vm;
+  atom_t _name;
+  ProtectedNode _module;
+};
 
 ////////////////////
 // VirtualMachine //
@@ -100,6 +128,9 @@ public:
 
   VirtualMachine(const VirtualMachine& src) = delete;
 
+  inline
+  ~VirtualMachine();
+
   void* malloc(size_t size) {
     return memoryManager.malloc(size);
   }
@@ -118,6 +149,16 @@ public:
   void deleteStaticArray(StaticArray<T> array, size_t size) {
     void* memory = static_cast<void*>((T*) array);
     free(memory, size * sizeof(T));
+  }
+
+  void onCleanup(const VMCleanupProc& handler) {
+    onCleanup(new (this) VMCleanupListNode, handler);
+  }
+
+  void onCleanup(VMCleanupListNode* node, const VMCleanupProc& handler) {
+    node->handler = handler;
+    node->next = _cleanupList;
+    _cleanupList = node;
   }
 
   run_return_type run();
@@ -155,6 +196,15 @@ public:
     return _isOnTopLevel;
   }
 
+  bool isIntermediateStateAvailable() {
+    return _currentThread != nullptr;
+  }
+
+  IntermediateState& getIntermediateState() {
+    assert(isIntermediateStateAvailable());
+    return _currentThread->getIntermediateState();
+  }
+
   inline
   void setCurrentSpace(Space* space);
 
@@ -165,6 +215,19 @@ public:
     return environment;
   }
 
+public:
+  inline
+  void registerBuiltinModule(const std::shared_ptr<BuiltinModule>& module);
+
+  template <typename T>
+  inline
+  UnstableNode findBuiltinModule(T&& name);
+
+  template <typename T, typename U>
+  inline
+  UnstableNode findBuiltin(T&& moduleName, U&& builtinName);
+
+public:
   PropertyRegistry& getPropertyRegistry() {
     return _propertyRegistry;
   }
@@ -197,6 +260,13 @@ public:
     return atomTable.getUniqueName(this, length, data);
   }
 public:
+  /** Protect a node from the GC.
+   *  Returns a reference-counted ref to that node.
+   */
+  template <typename T>
+  inline
+  ProtectedNode protect(T&& node);
+public:
   // Influence from the external world
   void requestPreempt() {
     _preemptRequested = true;
@@ -219,13 +289,10 @@ private:
   friend class GarbageCollector;
   friend class SpaceCloner;
   friend class Runnable;
+  friend class GlobalNode;
 
   friend void* ::operator new (size_t size, mozart::VM vm);
   friend void* ::operator new[] (size_t size, mozart::VM vm);
-
-  template <typename T>
-  friend ProtectedNode ozProtect(VM vm, T&& node);
-  friend void ozUnprotect(VM vm, ProtectedNode pp_node);
 
   void* getMemory(size_t size) {
     return memoryManager.getMemory(size);
@@ -233,6 +300,9 @@ private:
 
   inline
   void initialize();
+
+  inline
+  void doGC();
 
   inline
   void beforeGR(GR gr);
@@ -243,8 +313,22 @@ private:
   inline
   void startGC(GC gc);
 
+  inline
+  void gcProtectedNodes(GC gc);
+
+  inline
+  VMCleanupListNode* acquireCleanupList();
+
+  inline
+  void doCleanup(VMCleanupListNode* cleanupList);
+
+  void doCleanup() {
+    doCleanup(acquireCleanupList());
+  }
+
   ThreadPool threadPool;
   AtomTable atomTable;
+  GlobalNode* rootGlobalNode;
 
   VirtualMachineEnvironment& environment;
 
@@ -258,15 +342,17 @@ private:
   Runnable* _currentThread;
   bool _isOnTopLevel;
 
+  NodeDictionary* _builtinModules;
   PropertyRegistry _propertyRegistry;
 
   RunnableList aliveThreads;
+  VMCleanupListNode* _cleanupList;
 
   GarbageCollector gc;
   SpaceCloner sc;
 
   VMAllocatedList<AlarmRecord> _alarms;
-  ProtectedNodesContainer _protectedNodes;
+  std::forward_list<std::weak_ptr<StableNode*>> _protectedNodes;
 
   // Flags set externally for preemption etc.
   // TODO Use atomic data types

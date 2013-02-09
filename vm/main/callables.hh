@@ -37,45 +37,61 @@ namespace mozart {
 
 #include "BuiltinProcedure-implem.hh"
 
-void BuiltinProcedure::create(Builtin*& self, VM vm, GR gr, Self from) {
-  self = from.get()._builtin;
+void BuiltinProcedure::create(Builtin*& self, VM vm, GR gr,
+                              BuiltinProcedure from) {
+  self = from._builtin;
 }
 
-bool BuiltinProcedure::equals(VM vm, Self right) {
-  return _builtin == right.get()._builtin;
+bool BuiltinProcedure::equals(VM vm, RichNode right) {
+  return value() == right.as<BuiltinProcedure>().value();
 }
 
-void BuiltinProcedure::callBuiltin(
-  Self self, VM vm, size_t argc, UnstableNode* args[]) {
+atom_t BuiltinProcedure::getPrintName(VM vm) {
+  return _builtin->getPrintName(vm);
+}
 
+void BuiltinProcedure::callBuiltin(VM vm, size_t argc, UnstableNode* args[]) {
   assert(argc == getArity());
-  return _builtin->call(vm, args);
+  return _builtin->callBuiltin(vm, args);
 }
 
 template <class... Args>
-void BuiltinProcedure::callBuiltin(
-  Self self, VM vm, Args&&... args) {
-
+void BuiltinProcedure::callBuiltin(VM vm, Args&&... args) {
   assert(sizeof...(args) == getArity());
-  return _builtin->call(vm, std::forward<Args>(args)...);
+  return _builtin->callBuiltin(vm, std::forward<Args>(args)...);
 }
 
-size_t BuiltinProcedure::procedureArity(Self self, VM vm) {
+size_t BuiltinProcedure::procedureArity(VM vm) {
   return getArity();
 }
 
 void BuiltinProcedure::getCallInfo(
-  Self self, VM vm, size_t& arity, ProgramCounter& start,
+  RichNode self, VM vm, size_t& arity, ProgramCounter& start,
   size_t& Xcount, StaticArray<StableNode>& Gs, StaticArray<StableNode>& Ks) {
 
   return _builtin->getCallInfo(self, vm, arity, start, Xcount, Gs, Ks);
 }
 
 void BuiltinProcedure::getDebugInfo(
-  Self self, VM vm, atom_t& printName, UnstableNode& debugData) {
+  RichNode self, VM vm, atom_t& printName, UnstableNode& debugData) {
 
-  printName = _builtin->getNameAtom(vm);
+  printName = _builtin->getPrintName(vm);
   debugData = mozart::build(vm, unit);
+}
+
+UnstableNode BuiltinProcedure::serialize(VM vm, SE se) {
+  return buildTuple(vm, MOZART_STR("builtin"),
+                    _builtin->getModuleNameAtom(vm), _builtin->getNameAtom(vm));
+}
+
+void BuiltinProcedure::printReprToStream(VM vm, std::ostream& out,
+                                         int depth, int width) {
+  atom_t printName = _builtin->getPrintName(vm);
+
+  out << "<P/" << _builtin->getArity();
+  if (printName != vm->coreatoms.empty)
+    out << " " << makeLString(printName.contents(), printName.length());
+  out << ">";
 }
 
 /////////////////
@@ -84,46 +100,44 @@ void BuiltinProcedure::getDebugInfo(
 
 #include "Abstraction-implem.hh"
 
-Abstraction::Abstraction(VM vm, size_t Gc, StaticArray<StableNode> _Gs,
-                         RichNode body)
-  : WithHome(vm), _Gc(Gc) {
+Abstraction::Abstraction(VM vm, size_t Gc, RichNode body)
+  : WithHome(vm), _gnode(nullptr), _Gc(Gc) {
+
   _body.init(vm, body);
   _codeAreaCacheValid = false;
 
   // Initialize elements with non-random data
   // TODO An Uninitialized type?
   for (size_t i = 0; i < Gc; i++)
-    _Gs[i].init(vm);
+    getElements(i).init(vm);
 }
 
-Abstraction::Abstraction(VM vm, size_t Gc, StaticArray<StableNode> _Gs,
-                         GR gr, Self from):
-  WithHome(vm, gr, from->home()) {
+Abstraction::Abstraction(VM vm, size_t Gc, GR gr, Abstraction& from):
+  WithHome(vm, gr, from) {
 
-  gr->copyStableNode(_body, from->_body);
+  gr->copyGNode(_gnode, from._gnode);
+  gr->copyStableNode(_body, from._body);
   _Gc = Gc;
 
   _codeAreaCacheValid = false;
 
-  for (size_t i = 0; i < Gc; i++)
-    gr->copyStableNode(_Gs[i], from[i]);
+  gr->copyStableNodes(getElementsArray(), from.getElementsArray(), Gc);
 }
 
-StaticArray<StableNode> Abstraction::getElementsArray(Self self) {
-  return self.getArray();
+atom_t Abstraction::getPrintName(VM vm) {
+  atom_t result;
+  UnstableNode dummy;
+  getDebugInfo(vm, result, dummy);
+  return result;
 }
 
-void Abstraction::initElement(Self self, VM vm, size_t index, RichNode value) {
-  self[index].init(vm, value);
-}
-
-size_t Abstraction::procedureArity(Self self, VM vm) {
+size_t Abstraction::procedureArity(VM vm) {
   ensureCodeAreaCacheValid(vm);
   return _arity;
 }
 
 void Abstraction::getCallInfo(
-  Self self, VM vm, size_t& arity, ProgramCounter& start,
+  VM vm, size_t& arity, ProgramCounter& start,
   size_t& Xcount, StaticArray<StableNode>& Gs, StaticArray<StableNode>& Ks) {
 
   ensureCodeAreaCacheValid(vm);
@@ -131,33 +145,50 @@ void Abstraction::getCallInfo(
   arity = _arity;
   start = _start;
   Xcount = _Xcount;
-  Gs = self.getArray();
+  Gs = getElementsArray();
   Ks = _Ks;
 }
 
-void Abstraction::getDebugInfo(
-  Self self, VM vm, atom_t& printName, UnstableNode& debugData) {
-
+void Abstraction::getDebugInfo(VM vm, atom_t& printName,
+                               UnstableNode& debugData) {
   return CodeAreaProvider(_body).getCodeAreaDebugInfo(vm, printName, debugData);
 }
 
-void Abstraction::printReprToStream(
-  Self self, VM vm, std::ostream& out, int depth) {
-
+void Abstraction::printReprToStream(VM vm, std::ostream& out,
+                                    int depth, int width) {
   MOZART_TRY(vm) {
     ensureCodeAreaCacheValid(vm);
-
-    atom_t printName;
-    UnstableNode debugData;
-    CodeAreaProvider(_body).getCodeAreaDebugInfo(vm, printName, debugData);
+    atom_t printName = getPrintName(vm);
 
     out << "<P/" << _arity;
     if (printName != vm->coreatoms.empty)
-      out << " " << printName;
+      out << " " << makeLString(printName.contents(), printName.length());
     out << ">";
   } MOZART_CATCH(vm, kind, node) {
     out << "<P/?>";
   } MOZART_ENDTRY(vm);
+}
+
+UnstableNode Abstraction::serialize(VM vm, SE se) {
+  UnstableNode r = makeTuple(vm, MOZART_STR("abstraction"), _Gc+1);
+  auto elements=RichNode(r).as<Tuple>().getElementsArray();
+  for (size_t i=0; i< _Gc; ++i) {
+    se->copy(elements[i], getElements(i));
+  }
+  se->copy(elements[_Gc], _body);
+  return r;
+}
+
+GlobalNode* Abstraction::globalize(RichNode self, VM vm) {
+  if (_gnode == nullptr) {
+    _gnode = GlobalNode::make(vm, self, MOZART_STR("immval"));
+  }
+  return _gnode;
+}
+
+void Abstraction::setUUID(RichNode self, VM vm, const UUID& uuid) {
+  assert(_gnode == nullptr);
+  _gnode = GlobalNode::make(vm, uuid, self, MOZART_STR("immval"));
 }
 
 void Abstraction::ensureCodeAreaCacheValid(VM vm) {

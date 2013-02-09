@@ -36,8 +36,9 @@ namespace mozart {
 class DataflowVariable;
 template<>
 struct Interface<DataflowVariable>:
-  ImplementedBy<OptVar, Variable, ReadOnly, ReadOnlyVariable, FailedValue>,
-  NoAutoWait {
+  ImplementedBy<OptVar, Variable, ReadOnly, ReadOnlyVariable, FailedValue,
+                ReflectiveVariable>,
+  NoAutoWait, NoAutoReflectiveCalls {
 
   void addToSuspendList(RichNode self, VM vm, RichNode variable) {
     // TODO Should we immediately wake up the variable, here?
@@ -66,7 +67,7 @@ struct Interface<DataflowVariable>:
 class BindableReadOnly;
 template<>
 struct Interface<BindableReadOnly>:
-  ImplementedBy<ReadOnlyVariable>, NoAutoWait {
+  ImplementedBy<ReadOnlyVariable>, NoAutoWait, NoAutoReflectiveCalls {
 
   void bindReadOnly(RichNode self, VM vm, RichNode src) {
     raiseTypeError(vm, MOZART_STR("ReadOnlyVariable"), self);
@@ -78,7 +79,8 @@ template<>
 struct Interface<ValueEquatable>:
   ImplementedBy<SmallInt, Atom, Boolean, Float, BuiltinProcedure,
                 ReifiedThread, Unit, String, ByteString, UniqueName,
-                PatMatCapture> {
+                PatMatCapture>,
+  NoAutoReflectiveCalls {
 
   /**
    * Precondition:
@@ -96,7 +98,8 @@ struct Interface<ValueEquatable>:
 class StructuralEquatable;
 template<>
 struct Interface<StructuralEquatable>:
-  ImplementedBy<Tuple, Cons, Record, Arity> {
+  ImplementedBy<Tuple, Cons, Record, Arity>,
+  NoAutoReflectiveCalls {
 
   /**
    * Precondition:
@@ -124,7 +127,8 @@ struct Interface<Comparable>:
 class Wakeable;
 template<>
 struct Interface<Wakeable>:
-  ImplementedBy<ReifiedThread, Variable, ReadOnly>, NoAutoWait {
+  ImplementedBy<ReifiedThread, Variable, ReadOnly>, NoAutoWait,
+  NoAutoReflectiveCalls {
 
   void wakeUp(RichNode self, VM vm) {
   }
@@ -137,7 +141,10 @@ struct Interface<Wakeable>:
 class Literal;
 template<>
 struct Interface<Literal>:
-  ImplementedBy<Atom, OptName, GlobalName, Boolean, Unit> {
+  ImplementedBy<Atom,
+                OptName, GlobalName, NamedName, UniqueName,
+                Boolean, Unit>,
+  NoAutoReflectiveCalls {
 
   bool isLiteral(RichNode self, VM vm) {
     return false;
@@ -146,7 +153,11 @@ struct Interface<Literal>:
 
 class NameLike;
 template<>
-struct Interface<NameLike>: ImplementedBy<OptName, GlobalName> {
+struct Interface<NameLike>:
+  ImplementedBy<OptName, GlobalName, NamedName, UniqueName,
+                Unit, Boolean>,
+  NoAutoReflectiveCalls {
+
   bool isName(RichNode self, VM vm) {
     return false;
   }
@@ -154,7 +165,9 @@ struct Interface<NameLike>: ImplementedBy<OptName, GlobalName> {
 
 class AtomLike;
 template<>
-struct Interface<AtomLike>: ImplementedBy<Atom> {
+struct Interface<AtomLike>:
+  ImplementedBy<Atom>, NoAutoReflectiveCalls {
+
   bool isAtom(RichNode self, VM vm) {
     return false;
   }
@@ -162,7 +175,9 @@ struct Interface<AtomLike>: ImplementedBy<Atom> {
 
 class PotentialFeature;
 template<>
-struct Interface<PotentialFeature>: ImplementedBy<OptName> {
+struct Interface<PotentialFeature>:
+  ImplementedBy<OptName>, NoAutoReflectiveCalls {
+
   void makeFeature(RichNode self, VM vm) {
     if (!self.isFeature())
       raiseTypeError(vm, MOZART_STR("feature"), self);
@@ -171,7 +186,9 @@ struct Interface<PotentialFeature>: ImplementedBy<OptName> {
 
 class BuiltinCallable;
 template<>
-struct Interface<BuiltinCallable>: ImplementedBy<BuiltinProcedure> {
+struct Interface<BuiltinCallable>:
+  ImplementedBy<BuiltinProcedure>, NoAutoReflectiveCalls {
+
   bool isBuiltin(RichNode self, VM vm) {
     return false;
   }
@@ -194,36 +211,34 @@ struct Interface<BuiltinCallable>: ImplementedBy<BuiltinProcedure> {
 class Callable;
 template<>
 struct Interface<Callable>:
-  ImplementedBy<Abstraction, Object, BuiltinProcedure> {
+  ImplementedBy<Abstraction, Object, BuiltinProcedure>,
+  NoAutoReflectiveCalls {
 
-  bool isCallable(RichNode self, VM vm) {
-    return false;
-  }
+  inline
+  bool isCallable(RichNode self, VM vm);
 
-  bool isProcedure(RichNode self, VM vm) {
-    return false;
-  }
+  inline
+  bool isProcedure(RichNode self, VM vm);
 
-  size_t procedureArity(RichNode self, VM vm) {
-    raiseTypeError(vm, MOZART_STR("Abstraction"), self);
-  }
+  inline
+  size_t procedureArity(RichNode self, VM vm);
 
+  inline
   void getCallInfo(RichNode self, VM vm, size_t& arity,
                    ProgramCounter& start, size_t& Xcount,
                    StaticArray<StableNode>& Gs,
-                   StaticArray<StableNode>& Ks) {
-    raiseTypeError(vm, MOZART_STR("Abstraction"), self);
-  }
+                   StaticArray<StableNode>& Ks);
 
+  inline
   void getDebugInfo(RichNode self, VM vm,
-                    atom_t& printName, UnstableNode& debugData) {
-    raiseTypeError(vm, MOZART_STR("Abstraction"), self);
-  }
+                    atom_t& printName, UnstableNode& debugData);
 };
 
 class CodeAreaProvider;
 template<>
-struct Interface<CodeAreaProvider>: ImplementedBy<CodeArea> {
+struct Interface<CodeAreaProvider>:
+  ImplementedBy<CodeArea>, NoAutoReflectiveCalls {
+
   bool isCodeAreaProvider(RichNode self, VM vm) {
     return false;
   }
@@ -240,9 +255,21 @@ struct Interface<CodeAreaProvider>: ImplementedBy<CodeArea> {
   }
 };
 
+class WithPrintName;
+template<>
+struct Interface<WithPrintName>:
+  ImplementedBy<Abstraction, BuiltinProcedure, UniqueName, NamedName, Atom> {
+
+  atom_t getPrintName(RichNode self, VM vm) {
+    raiseTypeError(vm, MOZART_STR("WithPrintName"), self);
+  }
+};
+
 class Numeric;
 template<>
-struct Interface<Numeric>: ImplementedBy<SmallInt, Float> {
+struct Interface<Numeric>:
+  ImplementedBy<SmallInt, Float> {
+
   bool isNumber(RichNode self, VM vm) {
     return false;
   }
@@ -263,6 +290,10 @@ struct Interface<Numeric>: ImplementedBy<SmallInt, Float> {
     raiseTypeError(vm, MOZART_STR("Numeric"), self);
   }
 
+  UnstableNode add(RichNode self, VM vm, nativeint right) {
+    raiseTypeError(vm, MOZART_STR("Integer"), self);
+  }
+
   UnstableNode subtract(RichNode self, VM vm, RichNode right) {
     raiseTypeError(vm, MOZART_STR("Numeric"), self);
   }
@@ -272,59 +303,15 @@ struct Interface<Numeric>: ImplementedBy<SmallInt, Float> {
   }
 
   UnstableNode divide(RichNode self, VM vm, RichNode right) {
-    raiseTypeError(vm, MOZART_STR("Numeric"), self);
+    raiseTypeError(vm, MOZART_STR("Float"), self);
   }
 
   UnstableNode div(RichNode self, VM vm, RichNode right) {
-    raiseTypeError(vm, MOZART_STR("Numeric"), self);
+    raiseTypeError(vm, MOZART_STR("Integer"), self);
   }
 
   UnstableNode mod(RichNode self, VM vm, RichNode right) {
-    raiseTypeError(vm, MOZART_STR("Numeric"), self);
-  }
-};
-
-class IntegerValue;
-template<>
-struct Interface<IntegerValue>: ImplementedBy<SmallInt> {
-  nativeint intValue(RichNode self, VM vm) {
     raiseTypeError(vm, MOZART_STR("Integer"), self);
-  }
-
-  bool equalsInteger(RichNode self, VM vm, nativeint right) {
-    return false;
-  }
-
-  UnstableNode addValue(RichNode self, VM vm, nativeint b) {
-    raiseTypeError(vm, MOZART_STR("Integer"), self);
-  }
-};
-
-class FloatValue;
-template<>
-struct Interface<FloatValue>: ImplementedBy<Float> {
-  double floatValue(RichNode self, VM vm) {
-    raiseTypeError(vm, MOZART_STR("Float"), self);
-  }
-
-  bool equalsFloat(RichNode self, VM vm, double right) {
-    return false;
-  }
-
-  UnstableNode addValue(RichNode self, VM vm, double b) {
-    raiseTypeError(vm, MOZART_STR("Float"), self);
-  }
-};
-
-class BooleanValue;
-template<>
-struct Interface<BooleanValue>: ImplementedBy<Boolean> {
-  bool boolValue(RichNode self, VM vm) {
-    raiseTypeError(vm, MOZART_STR("Boolean"), self);
-  }
-
-  BoolOrNotBool valueOrNotBool(RichNode self, VM vm) {
-    return bNotBool;
   }
 };
 
@@ -364,7 +351,8 @@ class RecordLike;
 template<>
 struct Interface<RecordLike>:
   ImplementedBy<Tuple, Record, Cons,
-    Atom, OptName, GlobalName, Boolean, Unit> {
+    Atom, OptName, GlobalName, Boolean, Unit>,
+  NoAutoReflectiveCalls {
 
   bool isRecord(RichNode self, VM vm) {
     return false;
@@ -542,19 +530,12 @@ struct Interface<ObjectLike>: ImplementedBy<Object> {
   }
 };
 
-class ArrayInitializer;
-template<>
-struct Interface<ArrayInitializer>:
-  ImplementedBy<Tuple, Record, Abstraction, CodeArea, PatMatOpenRecord> {
-
-  void initElement(RichNode self, VM vm, size_t index, RichNode value) {
-    raiseTypeError(vm, MOZART_STR("Array initializer"), self);
-  }
-};
-
 class SpaceLike;
 template<>
-struct Interface<SpaceLike>: ImplementedBy<ReifiedSpace, DeletedSpace> {
+struct Interface<SpaceLike>:
+  ImplementedBy<ReifiedSpace, FailedSpace, MergedSpace>,
+  NoAutoReflectiveCalls {
+
   bool isSpace(RichNode self, VM vm) {
     return false;
   }
@@ -586,7 +567,10 @@ struct Interface<SpaceLike>: ImplementedBy<ReifiedSpace, DeletedSpace> {
 
 class ThreadLike;
 template<>
-struct Interface<ThreadLike>: ImplementedBy<ReifiedThread> {
+struct Interface<ThreadLike>:
+  ImplementedBy<ReifiedThread>,
+  NoAutoReflectiveCalls {
+
   bool isThread(RichNode self, VM vm) {
     return false;
   }
@@ -634,7 +618,10 @@ struct Interface<ChunkLike>: ImplementedBy<Chunk, Object> {
 
 class StringLike;
 template<>
-struct Interface<StringLike>: ImplementedBy<String, ByteString> {
+struct Interface<StringLike>:
+  ImplementedBy<String, ByteString>,
+  NoAutoReflectiveCalls {
+
   bool isString(RichNode self, VM vm) {
     return false;
   }
@@ -677,63 +664,51 @@ struct Interface<StringLike>: ImplementedBy<String, ByteString> {
   }
 };
 
-class VirtualString;
-template<>
-struct Interface<VirtualString>:
-  ImplementedBy<SmallInt, Float, Atom, Boolean, String, Unit, Cons, Tuple,
-                ByteString> {
-
-  bool isVirtualString(RichNode self, VM vm) {
-    return false;
-  }
-
-  void toString(RichNode self, VM vm, std::basic_ostream<nchar>& sink) {
-    raiseTypeError(vm, MOZART_STR("VirtualString"), self);
-  }
-
-  nativeint vsLength(RichNode self, VM vm) {
-    raiseTypeError(vm, MOZART_STR("VirtualString"), self);
-  }
-};
-
+#ifdef VM_HAS_CSS
 class ConstraintVar;
-template<>
+template <>
 struct Interface<ConstraintVar>:
-  ImplementedBy<SmallInt, CstIntVar> {
-    bool assigned(RichNode self, VM vm) {
-      raiseTypeError(vm, MOZART_STR("ConstraintVariable"), self);
-    }
+  ImplementedBy<SmallInt>,
+  NoAutoReflectiveCalls {
+
+  bool assigned(RichNode self, VM vm) {
+    raiseTypeError(vm, MOZART_STR("ConstraintVar"), self);
+  }
 };
 
 class IntVarLike;
 template<>
 struct Interface<IntVarLike>:
-  ImplementedBy<SmallInt, CstIntVar> {
+  ImplementedBy<SmallInt>,
+  NoAutoReflectiveCalls {
 
-    bool isIntVarLike(RichNode self, VM vm) {
-      return false;
-    }
+  bool isIntVarLike(RichNode self, VM vm) {
+    return false;
+  }
 
-    Gecode::IntVar& intVar(RichNode self, VM vm) {
+  Gecode::IntVar& intVar(RichNode self, VM vm) {
       raiseTypeError(vm, MOZART_STR("IntVarLike"), self);
     }
+  
+  UnstableNode min(RichNode self, VM vm) {
+    raiseTypeError(vm, MOZART_STR("IntVarLike"), self);
+  }
 
-    UnstableNode min(RichNode self, VM vm) {
-      raiseTypeError(vm, MOZART_STR("IntVarLike"), self);
-    }
+  UnstableNode max(RichNode self, VM vm) {
+    raiseTypeError(vm, MOZART_STR("IntVarLike"), self);
+  }
 
-    UnstableNode max(RichNode self, VM vm) {
-      raiseTypeError(vm, MOZART_STR("IntVarLike"), self);
-    }
-
-    UnstableNode value(RichNode self, VM vm) {
-      raiseTypeError(vm, MOZART_STR("IntVarLike"), self);
-    }
-
-    UnstableNode isIn(RichNode self, VM vm, RichNode right) {
-      raiseTypeError(vm, MOZART_STR("IntVarLike"), self);
-    }    
-  };
+  UnstableNode value(RichNode self, VM vm) {
+    raiseTypeError(vm, MOZART_STR("IntVarLike"), self);
+  }
+  
+  UnstableNode isIn(RichNode self, VM vm, RichNode right) {
+    raiseTypeError(vm, MOZART_STR("IntVarLike"), self);
+  }    
+};
+  
+#endif
+  
 }
 
 #endif // __COREINTERFACES_DECL_H

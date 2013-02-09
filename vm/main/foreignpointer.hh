@@ -1,4 +1,4 @@
-// Copyright © 2011, Université catholique de Louvain
+// Copyright © 2012, Université catholique de Louvain
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -22,20 +22,23 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef __BUILTINUTILS_DECL_H
-#define __BUILTINUTILS_DECL_H
+#ifndef __FOREIGNPOINTER_H
+#define __FOREIGNPOINTER_H
 
-#include "mozartcore-decl.hh"
+#include "mozartcore.hh"
+
+#ifndef MOZART_GENERATOR
 
 namespace mozart {
 
-namespace builtins {
+////////////////////
+// ForeignPointer //
+////////////////////
 
-inline
-void expectCallable(VM vm, RichNode target, size_t expectedArity);
+#include "ForeignPointer-implem.hh"
 
 }
 
-}
+#endif // MOZART_GENERATOR
 
-#endif // __BUILTINUTILS_DECL_H
+#endif // __FOREIGNPOINTER_H

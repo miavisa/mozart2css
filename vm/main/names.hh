@@ -37,12 +37,17 @@ namespace mozart {
 
 #include "OptName-implem.hh"
 
-void OptName::create(SpaceRef& self, VM vm, GR gr, Self from) {
-  gr->copySpace(self, from.get().home());
+void OptName::create(SpaceRef& self, VM vm, GR gr, OptName from) {
+  gr->copySpace(self, from.home());
 }
 
-void OptName::makeFeature(Self self, VM vm) {
+void OptName::makeFeature(RichNode self, VM vm) {
   self.become(vm, GlobalName::build(vm));
+}
+
+GlobalNode* OptName::globalize(RichNode self, VM vm) {
+  self.become(vm, GlobalName::build(vm));
+  return self.as<GlobalName>().globalize(vm);
 }
 
 ////////////////
@@ -51,17 +56,17 @@ void OptName::makeFeature(Self self, VM vm) {
 
 #include "GlobalName-implem.hh"
 
-GlobalName::GlobalName(VM vm, GR gr, Self from):
-  WithHome(vm, gr, from->home()) {
+GlobalName::GlobalName(VM vm, GR gr, GlobalName& from):
+  WithHome(vm, gr, from) {
 
   if (gr->kind() == GraphReplicator::grkSpaceCloning)
     _uuid = vm->genUUID();
   else
-    _uuid = from->_uuid;
+    _uuid = from._uuid;
 }
 
-int GlobalName::compareFeatures(VM vm, Self right) {
-  const UUID& rhsUUID = right->getUUID();
+int GlobalName::compareFeatures(VM vm, RichNode right) {
+  const UUID& rhsUUID = right.as<GlobalName>().getUUID();
 
   if (_uuid == rhsUUID)
     return 0;
@@ -69,6 +74,15 @@ int GlobalName::compareFeatures(VM vm, Self right) {
     return -1;
   else
     return 1;
+}
+
+GlobalNode* GlobalName::globalize(RichNode self, VM vm) {
+  GlobalNode* result;
+  if (!GlobalNode::get(vm, _uuid, result)) {
+    result->self.init(vm, self);
+    result->protocol.init(vm, MOZART_STR("immval"));
+  }
+  return result;
 }
 
 ///////////////
@@ -77,19 +91,20 @@ int GlobalName::compareFeatures(VM vm, Self right) {
 
 #include "NamedName-implem.hh"
 
-NamedName::NamedName(VM vm, GR gr, Self from):
-  WithHome(vm, gr, from->home()) {
+NamedName::NamedName(VM vm, GR gr, NamedName& from):
+  WithHome(vm, gr, from) {
 
-  gr->copyStableNode(_printName, from->_printName);
+  _printName = vm->getAtom(from._printName.length(),
+                           from._printName.contents());
 
   if (gr->kind() == GraphReplicator::grkSpaceCloning)
     _uuid = vm->genUUID();
   else
-    _uuid = from->_uuid;
+    _uuid = from._uuid;
 }
 
-int NamedName::compareFeatures(VM vm, Self right) {
-  const UUID& rhsUUID = right->getUUID();
+int NamedName::compareFeatures(VM vm, RichNode right) {
+  const UUID& rhsUUID = right.as<NamedName>().getUUID();
 
   if (_uuid == rhsUUID)
     return 0;
@@ -99,30 +114,53 @@ int NamedName::compareFeatures(VM vm, Self right) {
     return 1;
 }
 
+atom_t NamedName::getPrintName(VM vm) {
+  return _printName;
+}
+
+UnstableNode NamedName::serialize(VM vm, SE se) {
+  return buildTuple(vm, MOZART_STR("namedname"), _printName);
+}
+
+GlobalNode* NamedName::globalize(RichNode self, VM vm) {
+  GlobalNode* result;
+  if (!GlobalNode::get(vm, _uuid, result)) {
+    result->self.init(vm, self);
+    result->protocol.init(vm, MOZART_STR("immval"));
+  }
+  return result;
+}
+
 ////////////////
 // UniqueName //
 ////////////////
 
 #include "UniqueName-implem.hh"
 
-void UniqueName::create(unique_name_t& self, VM vm, GR gr, Self from) {
-  unique_name_t fromValue = from.get().value();
+void UniqueName::create(unique_name_t& self, VM vm, GR gr, UniqueName from) {
+  unique_name_t fromValue = from.value();
   self = vm->getUniqueName(fromValue.length(), fromValue.contents());
 }
 
-bool UniqueName::equals(VM vm, Self right) {
-  return value() == right.get().value();
+bool UniqueName::equals(VM vm, RichNode right) {
+  return value() == right.as<UniqueName>().value();
 }
 
-int UniqueName::compareFeatures(VM vm, Self right) {
-  return value().compare(right.get().value());
+int UniqueName::compareFeatures(VM vm, RichNode right) {
+  return value().compare(right.as<UniqueName>().value());
 }
 
-void UniqueName::printReprToStream(Self self, VM vm, std::ostream& out,
-                                   int depth) {
-  out << "<UniqueName '";
-  out << toUTF<char>(makeLString(value().contents(), value().length()));
-  out << "'>";
+atom_t UniqueName::getPrintName(VM vm) {
+  return atom_t(value());
+}
+
+UnstableNode UniqueName::serialize(VM vm, SE se) {
+  return buildTuple(vm, MOZART_STR("uniquename"), atom_t(value()));
+}
+
+void UniqueName::printReprToStream(VM vm, std::ostream& out,
+                                   int depth, int width) {
+  out << value();
 }
 
 }

@@ -35,25 +35,12 @@ namespace mozart {
 // ByteString //
 ////////////////
 
-enum class ByteStringEncoding {
-  latin1,
-  utf8,
-  utf16,
-  utf32
-};
-
-enum EncodingVariant : uintptr_t;
-
-class ByteString;
-
 #ifndef MOZART_GENERATOR
 #include "ByteString-implem-decl.hh"
 #endif
 
 class ByteString: public DataType<ByteString>,
   public IntegerDottableHelper<ByteString>, WithValueBehavior {
-public:
-  typedef SelfType<ByteString>::Self Self;
 public:
   static constexpr UUID uuid = "{2ca6b7da-7a3f-4f65-be2f-75bb6f704c47}";
 
@@ -64,97 +51,75 @@ public:
   ByteString(VM vm, const LString<unsigned char>& bytes) : _bytes(bytes) {}
 
   inline
-  ByteString(VM vm, GR gr, Self self);
+  ByteString(VM vm, GR gr, ByteString& from);
 
 public:
   const LString<unsigned char>& value() const { return _bytes; }
 
   inline
-  bool equals(VM vm, Self right);
+  bool equals(VM vm, RichNode right);
 
 protected:
   friend class IntegerDottableHelper<ByteString>;
 
-  bool isValidFeature(Self self, VM vm, nativeint feature) {
+  bool isValidFeature(VM vm, nativeint feature) {
     return (feature >= 0) && (feature < _bytes.length);
   }
 
   inline
-  UnstableNode getValueAt(Self self, VM vm, nativeint feature);
+  UnstableNode getValueAt(VM vm, nativeint feature);
 
 public:
   // Comparable interface
 
   inline
-  int compare(Self self, VM vm, RichNode right);
+  int compare(VM vm, RichNode right);
 
 public:
   // StringLike interface
 
-  bool isString(Self self, VM vm) {
+  bool isString(VM vm) {
     return false;
   }
 
-  bool isByteString(Self self, VM vm) {
+  bool isByteString(VM vm) {
     return true;
   }
 
   inline
-  LString<nchar>* stringGet(Self self, VM vm);
+  LString<nchar>* stringGet(RichNode self, VM vm);
 
   inline
-  LString<unsigned char>* byteStringGet(Self self, VM vm);
+  LString<unsigned char>* byteStringGet(VM vm);
 
   inline
-  nativeint stringCharAt(Self self, VM vm, RichNode offset);
+  nativeint stringCharAt(RichNode self, VM vm, RichNode offset);
 
   inline
-  UnstableNode stringAppend(Self self, VM vm, RichNode right);
+  UnstableNode stringAppend(RichNode self, VM vm, RichNode right);
 
   inline
-  UnstableNode stringSlice(Self self, VM vm, RichNode from, RichNode to);
+  UnstableNode stringSlice(RichNode self, VM vm, RichNode from, RichNode to);
 
   inline
-  void stringSearch(Self self, VM vm, RichNode from, RichNode needle,
+  void stringSearch(RichNode self, VM vm, RichNode from, RichNode needle,
                     UnstableNode& begin, UnstableNode& end);
 
   inline
-  bool stringHasPrefix(Self self, VM vm, RichNode prefix);
+  bool stringHasPrefix(VM vm, RichNode prefix);
 
   inline
-  bool stringHasSuffix(Self self, VM vm, RichNode suffix);
-
-public:
-  // VirtualString interface
-
-  bool isVirtualString(Self self, VM vm) {
-    return true;
-  }
-
-  inline
-  void toString(Self self, VM vm, std::basic_ostream<nchar>& sink);
-
-  inline
-  nativeint vsLength(Self self, VM vm);
+  bool stringHasSuffix(VM vm, RichNode suffix);
 
 public:
   // Miscellaneous
 
   inline
-  UnstableNode decode(Self self, VM vm,
-                      ByteStringEncoding encoding, EncodingVariant variant);
-
-  inline
-  void printReprToStream(Self self, VM vm, std::ostream& out, int depth);
+  void printReprToStream(VM vm, std::ostream& out, int depth, int width);
 
 private:
   LString<unsigned char> _bytes;
 };
-
-inline
-UnstableNode encodeToBytestring(VM vm, const BaseLString<nchar>& input,
-                                ByteStringEncoding encoding,
-                                EncodingVariant variant);
 
 #ifndef MOZART_GENERATOR
 #include "ByteString-implem-decl-after.hh"

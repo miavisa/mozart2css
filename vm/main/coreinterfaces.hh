@@ -25,14 +25,21 @@
 #ifndef __COREINTERFACES_H
 #define __COREINTERFACES_H
 
+#include <type_traits>
+
 #include "mozartcore-decl.hh"
 
 #include "coreinterfaces-decl.hh"
 #include "coredatatypes-decl.hh"
+#include "ozcalls-decl.hh"
 
 namespace mozart {
 
 #ifndef MOZART_GENERATOR
+
+/////////////////////
+// Generated stuff //
+/////////////////////
 
 #include "DataflowVariable-interf.hh"
 #include "BindableReadOnly-interf.hh"
@@ -47,10 +54,8 @@ namespace mozart {
 #include "BuiltinCallable-interf.hh"
 #include "Callable-interf.hh"
 #include "CodeAreaProvider-interf.hh"
+#include "WithPrintName-interf.hh"
 #include "Numeric-interf.hh"
-#include "IntegerValue-interf.hh"
-#include "FloatValue-interf.hh"
-#include "BooleanValue-interf.hh"
 #include "BaseDottable-interf.hh"
 #include "DotAssignable-interf.hh"
 #include "RecordLike-interf.hh"
@@ -58,15 +63,74 @@ namespace mozart {
 #include "ArrayLike-interf.hh"
 #include "DictionaryLike-interf.hh"
 #include "ObjectLike-interf.hh"
-#include "ArrayInitializer-interf.hh"
 #include "SpaceLike-interf.hh"
 #include "ThreadLike-interf.hh"
 #include "CellLike-interf.hh"
 #include "ChunkLike-interf.hh"
 #include "StringLike-interf.hh"
-#include "VirtualString-interf.hh"
-#include "IntVarLike-interf.hh"
+
+#ifdef VM_HAS_CSS
 #include "ConstraintVar-interf.hh"
+#include "IntVarLike-interf.hh"
+#endif
+
+//////////////
+// Callable //
+//////////////
+
+bool Interface<Callable>::isCallable(RichNode self, VM vm) {
+  if (self.is<ReflectiveEntity>()) {
+    bool result;
+    if (self.as<ReflectiveEntity>().reflectiveCall(
+          vm, MOZART_STR("$intf$::Callable::isCallable"),
+          MOZART_STR("isCallable"), ozcalls::out(result)))
+      return result;
+  }
+
+  return false;
+}
+
+bool Interface<Callable>::isProcedure(RichNode self, VM vm) {
+  if (self.is<ReflectiveEntity>()) {
+    bool result;
+    if (self.as<ReflectiveEntity>().reflectiveCall(
+          vm, MOZART_STR("$intf$::Callable::isProcedure"),
+          MOZART_STR("isProcedure"), ozcalls::out(result)))
+      return result;
+  }
+
+  return false;
+}
+
+size_t Interface<Callable>::procedureArity(RichNode self, VM vm) {
+  if (self.is<ReflectiveEntity>()) {
+    size_t result;
+    if (self.as<ReflectiveEntity>().reflectiveCall(
+          vm, MOZART_STR("$intf$::Callable::procedureArity"),
+          MOZART_STR("procedureArity"), ozcalls::out(result)))
+      return result;
+  }
+
+  raiseTypeError(vm, MOZART_STR("Procedure"), self);
+}
+
+void Interface<Callable>::getCallInfo(
+  RichNode self, VM vm, size_t& arity, ProgramCounter& start, size_t& Xcount,
+  StaticArray<StableNode>& Gs, StaticArray<StableNode>& Ks) {
+
+  raiseTypeError(vm, MOZART_STR("Callable"), self);
+}
+
+void Interface<Callable>::getDebugInfo(RichNode self, VM vm,
+                                       atom_t& printName,
+                                       UnstableNode& debugData) {
+  raiseTypeError(vm, MOZART_STR("Callable"), self);
+}
+
+//////////////
+// Dottable //
+//////////////
+>>>>>>> css
 
 struct Dottable: public BaseDottable {
   // Not supported by compilers yet
@@ -76,15 +140,12 @@ struct Dottable: public BaseDottable {
   Dottable(UnstableNode& self): BaseDottable(self) {}
   Dottable(StableNode& self): BaseDottable(self) {}
 
-  template <class T>
-  Dottable(BaseSelf<T> self): BaseDottable(self) {}
-
   UnstableNode dot(VM vm, RichNode feature) {
     UnstableNode result;
     if (lookupFeature(vm, feature, result))
       return result;
     else
-      raise(vm, vm->coreatoms.illegalFieldSelection, _self, feature);
+      raiseKernelError(vm, MOZART_STR("."), _self, feature);
   }
 
   UnstableNode dot(VM vm, nativeint feature) {
@@ -92,7 +153,16 @@ struct Dottable: public BaseDottable {
     if (lookupFeature(vm, feature, result))
       return result;
     else
-      raise(vm, vm->coreatoms.illegalFieldSelection, _self, feature);
+      raiseKernelError(vm, MOZART_STR("."), _self, feature);
+  }
+
+  template <typename F>
+  auto dot(VM vm, F&& feature)
+    -> typename std::enable_if<
+      !std::is_convertible<F, RichNode>::value &&
+      !std::is_convertible<F, nativeint>::value, UnstableNode>::type {
+    UnstableNode featureNode(vm, std::forward<F>(feature));
+    return dot(vm, RichNode(featureNode));
   }
 
   bool hasFeature(VM vm, RichNode feature) {
@@ -101,6 +171,15 @@ struct Dottable: public BaseDottable {
 
   bool hasFeature(VM vm, nativeint feature) {
     return lookupFeature(vm, feature, nullptr);
+  }
+
+  template <typename F>
+  auto hasFeature(VM vm, F&& feature)
+    -> typename std::enable_if<
+      !std::is_convertible<F, RichNode>::value &&
+      !std::is_convertible<F, nativeint>::value, bool>::type {
+    UnstableNode featureNode(vm, std::forward<F>(feature));
+    return hasFeature(vm, RichNode(featureNode));
   }
 
   UnstableNode condSelect(VM vm, RichNode feature, RichNode defaultResult) {
@@ -117,6 +196,24 @@ struct Dottable: public BaseDottable {
       return result;
     else
       return { vm, defaultResult };
+  }
+
+  template <typename D>
+  auto condSelect(VM vm, nativeint feature, D&& defaultResult)
+    -> typename std::enable_if<
+      !std::is_convertible<D, RichNode>::value, UnstableNode>::type {
+    UnstableNode defaultNode(vm, std::forward<D>(defaultResult));
+    return condSelect(vm, feature, RichNode(defaultNode));
+  }
+
+  template <typename F, typename D>
+  auto condSelect(VM vm, F&& feature, D&& defaultResult)
+    -> typename std::enable_if<
+      !std::is_convertible<F, nativeint>::value &&
+      !std::is_convertible<D, RichNode>::value, UnstableNode>::type {
+    UnstableNode featureNode(vm, std::forward<F>(feature));
+    UnstableNode defaultNode(vm, std::forward<D>(defaultResult));
+    return condSelect(vm, RichNode(featureNode), RichNode(defaultNode));
   }
 };
 

@@ -26,6 +26,7 @@
 #define __MODPROCEDURE_H
 
 #include "../mozartcore.hh"
+#include "../emulate.hh"
 
 #ifndef MOZART_GENERATOR
 
@@ -45,7 +46,7 @@ public:
   public:
     Is(): Builtin("is") {}
 
-    void operator()(VM vm, In value, Out result) {
+    static void call(VM vm, In value, Out result) {
       result = build(vm, Callable(value).isProcedure(vm));
     }
   };
@@ -54,8 +55,39 @@ public:
   public:
     Arity(): Builtin("arity") {}
 
-    void operator()(VM vm, In procedure, Out result) {
+    static void call(VM vm, In procedure, Out result) {
       result = build(vm, Callable(procedure).procedureArity(vm));
+    }
+  };
+
+  class Apply: public Builtin<Apply> {
+  public:
+    Apply(): Builtin("apply") {}
+
+    static void call(VM vm, In procedure, In args) {
+      RichNode terminationVar = protectNonIdempotentStep(
+        vm, MOZART_STR("::mozart::builtins::ModProcedure::Apply"),
+        [=] () -> RichNode {
+          size_t argc = ozListLength(vm, args);
+          auto arguments = vm->newStaticArray<RichNode>(argc);
+          ozListForEach(
+            vm, args,
+            [&arguments] (RichNode arg, size_t i) {
+              arguments[i] = arg;
+            },
+            MOZART_STR("list"));
+
+          auto thr = new Thread(vm, vm->getCurrentSpace(),
+                                procedure, argc, arguments);
+
+          vm->deleteStaticArray<RichNode>(arguments, argc);
+
+          return RichNode(thr->getTerminationVar());
+        }
+      );
+
+      if (terminationVar.isTransient())
+        waitFor(vm, terminationVar);
     }
   };
 };

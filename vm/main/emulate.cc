@@ -122,16 +122,6 @@ bool ThreadStack::findExceptionHandler(VM vm, StableNode*& abstraction,
 }
 
 namespace {
-  template <class Feat, class Def>
-  inline
-  UnstableNode handyCondSelect(VM vm, RichNode record, Feat&& feature,
-                               Def&& def) {
-    UnstableNode featureNode = build(vm, std::forward<Feat>(feature));
-    UnstableNode defaultNode = build(vm, std::forward<Def>(def));
-
-    return Dottable(record).condSelect(vm, featureNode, defaultNode);
-  }
-
   inline
   UnstableNode buildStackTraceItem(VM vm, StableNode* abstraction,
                                    ProgramCounter PC) {
@@ -142,12 +132,11 @@ namespace {
     UnstableNode kind = build(vm, MOZART_STR("call"));
     UnstableNode data = build(vm, *abstraction);
 
-    UnstableNode file = handyCondSelect(vm, debugData, MOZART_STR("file"),
-                                        vm->coreatoms.empty);
-    UnstableNode line = handyCondSelect(vm, debugData, MOZART_STR("line"),
-                                        unit);
-    UnstableNode column = handyCondSelect(vm, debugData, MOZART_STR("column"),
-                                          -1);
+    Dottable dotDebugData(debugData);
+    UnstableNode file = dotDebugData.condSelect(vm, MOZART_STR("file"),
+                                                vm->coreatoms.empty);
+    UnstableNode line = dotDebugData.condSelect(vm, MOZART_STR("line"), unit);
+    UnstableNode column = dotDebugData.condSelect(vm, MOZART_STR("column"), -1);
 
     UnstableNode PCNode = build(vm, reinterpret_cast<std::intptr_t>(PC));
 
@@ -169,7 +158,8 @@ UnstableNode ThreadStack::buildStackTrace(VM vm, StableNode* abstraction,
                                           ProgramCounter PC) {
   OzListBuilder result(vm);
 
-  result.push_back(vm, buildStackTraceItem(vm, abstraction, PC));
+  if (abstraction != nullptr)
+    result.push_back(vm, buildStackTraceItem(vm, abstraction, PC));
 
   for (auto iter = begin(); iter != end(); ++iter) {
     StackEntry& entry = *iter;
@@ -189,19 +179,21 @@ UnstableNode ThreadStack::buildStackTrace(VM vm, StableNode* abstraction,
 // Thread //
 ////////////
 
+constexpr size_t Thread::InitXRegisters;
+
 Thread::Thread(VM vm, Space* space, RichNode abstraction,
                bool createSuspended): Runnable(vm, space) {
   constructor(vm, abstraction, 0, nullptr, createSuspended);
 }
 
 Thread::Thread(VM vm, Space* space, RichNode abstraction,
-               size_t argc, UnstableNode* args[],
+               size_t argc, RichNode args[],
                bool createSuspended): Runnable(vm, space) {
   constructor(vm, abstraction, argc, args, createSuspended);
 }
 
 void Thread::constructor(VM vm, RichNode abstraction,
-                         size_t argc, UnstableNode* args[],
+                         size_t argc, RichNode args[],
                          bool createSuspended) {
   // getCallInfo
 
@@ -211,21 +203,22 @@ void Thread::constructor(VM vm, RichNode abstraction,
   StaticArray<StableNode> Gs;
   StaticArray<StableNode> Ks;
 
-  Callable(abstraction).getCallInfo(vm, arity, start, Xcount, Gs, Ks);
+  doGetCallInfo(vm, abstraction, arity, start, Xcount, Gs, Ks);
 
-  assert(arity == argc);
+  if (argc != arity)
+    raise(vm, MOZART_STR("illegalArity"), arity, argc);
 
   // Set up
 
-  auto initXRegisters = InitXRegisters; // work around for limitation of clang
-  xregs.init(vm, std::max(Xcount, initXRegisters));
+  xregs.init(vm, std::max(Xcount, InitXRegisters));
 
   for (size_t i = 0; i < argc; i++)
-    xregs[i].copy(vm, *args[i]);
+    xregs[i].copy(vm, args[i]);
 
   pushFrame(vm, abstraction.getStableRef(vm), start, 0, nullptr, Gs, Ks);
 
   injectedException = nullptr;
+  _terminationVar.init(vm, OptVar::build(vm, getSpace()));
 
   // Resume the thread unless createSuspended
   if (!createSuspended)
@@ -253,6 +246,8 @@ Thread::Thread(GR gr, Thread& from): Runnable(gr, from) {
     injectedException = nullptr;
   else
     gr->copyStableRef(injectedException, from.injectedException);
+
+  gr->copyStableNode(_terminationVar, from._terminationVar);
 }
 
 void Thread::run() {
@@ -271,6 +266,8 @@ void Thread::run() {
   StaticArray<StableNode> kregs;
 
   popFrame(vm, abstraction, PC, yregCount, yregs, gregs, kregs);
+
+  getIntermediateState().rewind(vm);
 
   // Some helpers
 
@@ -381,14 +378,6 @@ void Thread::run() {
           for (size_t i = 0; i < count; i++)
             yregs[i].init(vm);
           advancePC(1); break;
-        }
-
-        case OpDeallocateY: {
-          assert(yregs != nullptr); // Duplicate DeallocateY
-          vm->deleteStaticArray<UnstableNode>(yregs, yregCount);
-          yregCount = 0;
-          yregs = nullptr;
-          advancePC(0); break;
         }
 
         // Variable allocation
@@ -603,6 +592,8 @@ void Thread::run() {
         }
 
         case OpReturn: {
+          vm->deleteStaticArray<UnstableNode>(yregs, yregCount);
+
           if (stack.empty()) {
             terminate();
             preempted = true;
@@ -616,27 +607,78 @@ void Thread::run() {
         }
 
         case OpBranch: {
-          int distance = IntPC(1);
+          std::ptrdiff_t distance = IntPC(1);
           advancePC(1 + distance);
           break;
         }
 
         case OpBranchBackward: {
-          int distance = IntPC(1);
+          std::ptrdiff_t distance = IntPC(1);
           advancePC(1 - distance);
           break;
         }
 
         case OpCondBranch: {
-          int distance;
+          using namespace patternmatching;
 
-          switch (BooleanValue(XPC(1)).valueOrNotBool(vm)) {
-            case bFalse: distance = IntPC(2); break;
-            case bTrue:  distance = IntPC(3); break;
-            default:     distance = IntPC(4);
+          bool test;
+          if (matches(vm, XPC(1), capture(test))) {
+            if (test)
+              advancePC(3);
+            else
+              advancePC(3 + (std::ptrdiff_t) IntPC(2));
+          } else {
+            advancePC(3 + (std::ptrdiff_t) IntPC(3));
           }
 
-          advancePC(4 + distance);
+          break;
+        }
+
+        case OpCondBranchFB: {
+          using namespace patternmatching;
+
+          bool test;
+          if (matches(vm, XPC(1), capture(test))) {
+            if (test)
+              advancePC(3);
+            else
+              advancePC(3 + (std::ptrdiff_t) IntPC(2));
+          } else {
+            advancePC(3 - (std::ptrdiff_t) IntPC(3));
+          }
+
+          break;
+        }
+
+        case OpCondBranchBF: {
+          using namespace patternmatching;
+
+          bool test;
+          if (matches(vm, XPC(1), capture(test))) {
+            if (test)
+              advancePC(3);
+            else
+              advancePC(3 - (std::ptrdiff_t) IntPC(2));
+          } else {
+            advancePC(3 + (std::ptrdiff_t) IntPC(3));
+          }
+
+          break;
+        }
+
+        case OpCondBranchBB: {
+          using namespace patternmatching;
+
+          bool test;
+          if (matches(vm, XPC(1), capture(test))) {
+            if (test)
+              advancePC(3);
+            else
+              advancePC(3 - (std::ptrdiff_t) IntPC(2));
+          } else {
+            advancePC(3 - (std::ptrdiff_t) IntPC(3));
+          }
+
           break;
         }
 
@@ -675,14 +717,14 @@ void Thread::run() {
           break;
         }
 
-        case OpUnifyXK: {
-          unify(vm, XPC(1), KPC(2));
+        case OpUnifyXG: {
+          unify(vm, XPC(1), GPC(2));
           advancePC(2);
           break;
         }
 
-        case OpUnifyXG: {
-          unify(vm, XPC(1), GPC(2));
+        case OpUnifyXK: {
+          unify(vm, XPC(1), KPC(2));
           advancePC(2);
           break;
         }
@@ -1052,7 +1094,7 @@ void Thread::run() {
         // Inlines for some builtins
 
         case OpInlineEqualsInteger: {
-          if (IntegerValue(XPC(1)).equalsInteger(vm, IntPC(2)))
+          if (patternmatching::matches(vm, XPC(1), (nativeint) IntPC(2)))
             advancePC(3);
           else
             advancePC(3 + IntPC(3));
@@ -1063,12 +1105,14 @@ void Thread::run() {
 #include "emulate-inline.cc"
 
         default: {
-          assert(false);
-          std::cerr << "Bad opcode: " << op << "\n";
-          terminate();
-          return;
+          /* We really should not come here, but raising a proper exception
+           * helps in debugging. */
+          raiseKernelError(vm, MOZART_STR("badOpCode"), (nativeint) op);
         }
       } // Big switch testing the opcode
+
+      // When an opcode is successful, reset the intermediate state
+      getIntermediateState().reset(vm);
     } // Big loop iterating over opcodes
 
   // The big catches clauses that catch all bad things in the world
@@ -1159,7 +1203,7 @@ void Thread::call(RichNode target, size_t actualArity, bool isTailCall,
   StaticArray<StableNode> Gs;
   StaticArray<StableNode> Ks;
 
-  Callable(target).getCallInfo(vm, formalArity, start, Xcount, Gs, Ks);
+  doGetCallInfo(vm, target, formalArity, start, Xcount, Gs, Ks);
 
   if (actualArity != formalArity) {
     auto actualArgs = vm->newStaticArray<RichNode>(actualArity);
@@ -1171,20 +1215,27 @@ void Thread::call(RichNode target, size_t actualArity, bool isTailCall,
 
     vm->deleteStaticArray<RichNode>(actualArgs, actualArity);
 
-    return raiseKernelError(vm, MOZART_STR("arity"),
-                            target, std::move(argumentsList));
+    raiseKernelError(vm, MOZART_STR("arity"),
+                     target, std::move(argumentsList));
   }
 
   advancePC(opcodeArgCount);
+
+  /* Get a stable ref now, in case target happens to be a Y register and
+   * we are doing a tail call. */
+  StableNode* stableTarget = target.getStableRef(vm);
 
   if (!isTailCall) {
     pushFrame(vm, abstraction, PC, yregCount, yregs, gregs, kregs);
   } else {
     assert(stack.empty() || !stack.front().isExceptionHandler());
+
+    // This will invalidate target if it is a Y register!
+    vm->deleteStaticArray<UnstableNode>(yregs, yregCount);
   }
 
   // Setup new frame
-  abstraction = target.getStableRef(vm);
+  abstraction = stableTarget;
   PC = start;
   xregs->grow(vm, Xcount, formalArity);
   yregCount = 0;
@@ -1209,8 +1260,15 @@ void Thread::sendMsg(RichNode target, RichNode labelOrArity, size_t width,
                      bool& preempted) {
   // "Just make it work" implementation that always delegates to call()
 
+  derefReflectiveTarget(vm, target);
   if (target.isTransient())
     waitFor(vm, target);
+
+  /* Make it stable now, because if the target happens to be referencing x(0),
+   * the overriding of x(0) with the message, below, will break the node
+   * referenced by target!
+   */
+  target.ensureStable(vm);
 
   using namespace patternmatching;
 
@@ -1244,6 +1302,27 @@ void Thread::sendMsg(RichNode target, RichNode labelOrArity, size_t width,
        xregs, yregs, gregs, kregs, preempted, 3);
 }
 
+void Thread::doGetCallInfo(VM vm, RichNode& target, size_t& arity,
+                           ProgramCounter& start, size_t& Xcount,
+                           StaticArray<StableNode>& Gs,
+                           StaticArray<StableNode>& Ks) {
+  derefReflectiveTarget(vm, target);
+  Callable(target).getCallInfo(vm, arity, start, Xcount, Gs, Ks);
+}
+
+void Thread::derefReflectiveTarget(VM vm, RichNode& target) {
+  while (target.is<ReflectiveEntity>()) {
+    RichNode delegate;
+    if (target.as<ReflectiveEntity>().reflectiveCall(
+          vm, MOZART_STR("mozart::Thread::doGetCallInfo"),
+          MOZART_STR("getCallDelegate"), ozcalls::out(delegate))) {
+      target = delegate;
+    } else {
+      break;
+    }
+  }
+}
+
 void Thread::patternMatch(VM vm, RichNode value, RichNode patterns,
                           StableNode*& abstraction,
                           ProgramCounter& PC, size_t& yregCount,
@@ -1260,7 +1339,7 @@ void Thread::patternMatch(VM vm, RichNode value, RichNode patterns,
   auto patternList = patternsTuple.getElementsArray();
 
   for (size_t index = 0; index < patternCount; index++) {
-    UnstableNode pattern;
+    RichNode pattern;
     nativeint jumpOffset = 0;
 
     if (!matchesSharp(vm, patternList[index],
@@ -1268,8 +1347,6 @@ void Thread::patternMatch(VM vm, RichNode value, RichNode patterns,
       assert(false);
       raiseTypeError(vm, MOZART_STR("pattern"), patternList[index]);
     }
-
-    assert(jumpOffset >= 0);
 
     if (mozart::patternMatch(vm, value, pattern, xregs->getArray())) {
       advancePC(2 + jumpOffset);
@@ -1291,8 +1368,8 @@ void Thread::applyFail(VM vm,
     vm->getCurrentSpace()->fail(vm);
   } else {
     UnstableNode error = buildRecord(
-      vm, buildArity(vm, vm->coreatoms.error, 1, vm->coreatoms.debug),
-      vm->coreatoms.failure, unit);
+      vm, buildArity(vm, vm->coreatoms.failure, vm->coreatoms.debug),
+      unit);
 
     applyRaise(vm, error,
                abstraction, PC, yregCount, xregs, yregs, gregs, kregs);
@@ -1336,6 +1413,9 @@ void Thread::applyRaise(VM vm, RichNode exception,
                         StaticArray<UnstableNode>& yregs,
                         StaticArray<StableNode>& gregs,
                         StaticArray<StableNode>& kregs) {
+  // Discard any intermediate state
+  getIntermediateState().reset(vm);
+
   UnstableNode preprocessedException = preprocessException(
     vm, exception, abstraction, PC);
 
@@ -1350,6 +1430,7 @@ void Thread::applyRaise(VM vm, RichNode exception,
   } else {
     RichNode handler = *vm->getPropertyRegistry().getDefaultExceptionHandler();
 
+    // TODO Figure something better here that can cope with Mozart exceptions
     if (!handler.isTransient() && Callable(handler).isProcedure(vm) &&
         (Callable(handler).procedureArity(vm) == 1)) {
       bool dummyPreempted = false;
@@ -1359,7 +1440,10 @@ void Thread::applyRaise(VM vm, RichNode exception,
     } else {
       // Uncaught exception
       std::cout << "Uncaught exception" << std::endl;
-      std::cout << repr(vm, (*xregs)[0], 100) << std::endl;
+      std::cout << repr(vm, (*xregs)[0], 20, 20) << std::endl;
+
+      UnstableNode stackTrace = stack.buildStackTrace(vm, abstraction, PC);
+      std::cout << repr(vm, stackTrace, 30, 20) << std::endl;
 
       terminate();
     }
@@ -1426,6 +1510,19 @@ Runnable* Thread::gCollect(GC gc) {
 
 Runnable* Thread::sClone(SC sc) {
   return new (sc->vm) Thread(sc, *this);
+}
+
+void Thread::terminate() {
+  Super::terminate();
+
+  auto unitNode = build(vm, unit);
+  DataflowVariable(_terminationVar).bind(vm, unitNode);
+}
+
+void Thread::dump() {
+  std::cerr << "Thread " << this << ", runnable:" << isRunnable() << std::endl;
+  UnstableNode stackTrace = stack.buildStackTrace(vm, nullptr, nullptr);
+  std::cerr << repr(vm, stackTrace) << std::endl;
 }
 
 }

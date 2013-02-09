@@ -26,6 +26,8 @@
 #define __RUNNABLE_DECL_H
 
 #include "core-forward-decl.hh"
+#include "store-decl.hh"
+#include "vmallocatedlist-decl.hh"
 
 #include <cassert>
 
@@ -38,6 +40,56 @@ enum ThreadPriority {
   tpLow, tpMiddle, tpHi,
   tpCount
 };
+
+///////////////////////
+// IntermediateState //
+///////////////////////
+
+class IntermediateState {
+private:
+  typedef VMAllocatedList<UnstableNode> List;
+public:
+  typedef List::iterator CheckPoint;
+public:
+  inline
+  explicit IntermediateState(VM vm);
+
+  inline
+  IntermediateState(VM vm, GR gr, IntermediateState& from);
+
+  CheckPoint makeCheckPoint(VM vm) {
+    return _last;
+  }
+
+  inline
+  void reset(VM vm, CheckPoint checkPoint);
+
+  inline
+  void reset(VM vm);
+
+  template <typename... Args>
+  inline
+  bool fetch(VM vm, const nchar* identity, Args... args);
+
+  template <typename... Args>
+  inline
+  void store(VM vm, const nchar* identity, Args&&... args);
+
+  template <typename... Args>
+  inline
+  void resetAndStore(VM vm, CheckPoint checkPoint, const nchar* identity,
+                     Args&&... args);
+
+  inline
+  void rewind(VM vm);
+private:
+  List _list;
+  List::iterator _last;
+};
+
+//////////////
+// Runnable //
+//////////////
 
 class Runnable {
 public:
@@ -89,6 +141,10 @@ public:
     _raiseOnBlock = value;
   }
 
+  IntermediateState& getIntermediateState() {
+    return _intermediateState;
+  }
+
   virtual void beforeGR() {}
   virtual void afterGR() {}
 
@@ -109,7 +165,9 @@ protected:
 
   inline
   virtual void dispose();
-
+public:
+  virtual void dump() {}
+protected:
   VM vm;
 private:
   friend class RunnableList;
@@ -125,6 +183,8 @@ private:
   bool _raiseOnBlock;
 
   StableNode _reification;
+
+  IntermediateState _intermediateState;
 
   Runnable* _replicate;
 

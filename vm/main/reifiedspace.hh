@@ -116,11 +116,11 @@ private:
 
 #include "ReifiedSpace-implem.hh"
 
-void ReifiedSpace::create(SpaceRef& self, VM vm, GR gr, Self from) {
-  gr->copySpace(self, from.get().home());
+void ReifiedSpace::create(SpaceRef& self, VM vm, GR gr, ReifiedSpace from) {
+  gr->copySpace(self, from.home());
 }
 
-UnstableNode ReifiedSpace::askSpace(Self self, VM vm) {
+UnstableNode ReifiedSpace::askSpace(RichNode self, VM vm) {
   using namespace patternmatching;
 
   Space* space = getSpace();
@@ -137,7 +137,7 @@ UnstableNode ReifiedSpace::askSpace(Self self, VM vm) {
   }
 }
 
-UnstableNode ReifiedSpace::askVerboseSpace(Self self, VM vm) {
+UnstableNode ReifiedSpace::askVerboseSpace(RichNode self, VM vm) {
   Space* space = getSpace();
 
   if (!space->isAdmissible(vm))
@@ -150,7 +150,7 @@ UnstableNode ReifiedSpace::askVerboseSpace(Self self, VM vm) {
   }
 }
 
-UnstableNode ReifiedSpace::mergeSpace(Self self, VM vm) {
+UnstableNode ReifiedSpace::mergeSpace(RichNode self, VM vm) {
   Space* currentSpace = vm->getCurrentSpace();
   Space* space = getSpace();
 
@@ -172,8 +172,8 @@ UnstableNode ReifiedSpace::mergeSpace(Self self, VM vm) {
   // Extract root var
   auto result = mozart::build(vm, *space->getRootVar());
 
-  // Become a merged deleted space
-  self.become(vm, DeletedSpace::build(vm, dsMerged));
+  // Become a merged space
+  self.become(vm, MergedSpace::build(vm));
 
   // Actual merge
   if (!space->merge(vm, currentSpace))
@@ -182,7 +182,7 @@ UnstableNode ReifiedSpace::mergeSpace(Self self, VM vm) {
   return result;
 }
 
-void ReifiedSpace::commitSpace(Self self, VM vm, RichNode value) {
+void ReifiedSpace::commitSpace(RichNode self, VM vm, RichNode value) {
   using namespace patternmatching;
 
   Space* space = getSpace();
@@ -206,7 +206,7 @@ void ReifiedSpace::commitSpace(Self self, VM vm, RichNode value) {
   }
 }
 
-UnstableNode ReifiedSpace::cloneSpace(Self self, VM vm) {
+UnstableNode ReifiedSpace::cloneSpace(RichNode self, VM vm) {
   Space* space = getSpace();
 
   if (!space->isAdmissible(vm))
@@ -220,7 +220,7 @@ UnstableNode ReifiedSpace::cloneSpace(Self self, VM vm) {
   return ReifiedSpace::build(vm, copy);
 }
 
-void ReifiedSpace::killSpace(Self self, VM vm) {
+void ReifiedSpace::killSpace(RichNode self, VM vm) {
   Space* space = getSpace();
 
   if (!space->isAdmissible(vm))
@@ -229,102 +229,70 @@ void ReifiedSpace::killSpace(Self self, VM vm) {
   space->kill(vm);
 }
 
-//////////////////
-// DeletedSpace //
-//////////////////
+/////////////////
+// FailedSpace //
+/////////////////
 
-#include "DeletedSpace-implem.hh"
+#include "FailedSpace-implem.hh"
 
-void DeletedSpace::create(DeletedSpaceKind& self, VM vm, GR gr, Self from) {
-  self = from.get().kind();
+void FailedSpace::create(unit_t& self, VM vm, GR gr, FailedSpace from) {
 }
 
-UnstableNode DeletedSpace::askSpace(Self self, VM vm) {
-  switch (kind()) {
-    case dsFailed: {
-      return Atom::build(vm, vm->coreatoms.failed);
-    }
-
-    case dsMerged: {
-      return Atom::build(vm, vm->coreatoms.merged);
-    }
-
-    default: {
-      assert(false);
-      fail(vm);
-    }
-  }
+UnstableNode FailedSpace::askSpace(VM vm) {
+  return Atom::build(vm, vm->coreatoms.failed);
 }
 
-UnstableNode DeletedSpace::askVerboseSpace(Self self, VM vm) {
-  switch (kind()) {
-    case dsFailed: {
-      return Atom::build(vm, vm->coreatoms.failed);
-    }
-
-    case dsMerged: {
-      return Atom::build(vm, vm->coreatoms.merged);
-    }
-
-    default: {
-      assert(false);
-      fail(vm);
-    }
-  }
+UnstableNode FailedSpace::askVerboseSpace(VM vm) {
+  return Atom::build(vm, vm->coreatoms.failed);
 }
 
-UnstableNode DeletedSpace::mergeSpace(Self self, VM vm) {
-  switch (kind()) {
-    case dsFailed: {
-      fail(vm);
-    }
-
-    case dsMerged: {
-      raise(vm, vm->coreatoms.spaceMerged);
-    }
-
-    default: {
-      assert(false);
-      fail(vm);
-    }
-  }
+UnstableNode FailedSpace::mergeSpace(VM vm) {
+  fail(vm);
 }
 
-void DeletedSpace::commitSpace(Self self, VM vm, RichNode value) {
-  switch (kind()) {
-    case dsFailed: {
-      // nothing to do
-    }
-
-    case dsMerged: {
-      raise(vm, vm->coreatoms.spaceMerged);
-    }
-
-    default: {
-      assert(false);
-      fail(vm);
-    }
-  }
+void FailedSpace::commitSpace(VM vm, RichNode value) {
+  // nothing to do
 }
 
-UnstableNode DeletedSpace::cloneSpace(Self self, VM vm) {
-  switch (kind()) {
-    case dsFailed: {
-      return DeletedSpace::build(vm, dsFailed);
-    }
-
-    case dsMerged: {
-      raise(vm, vm->coreatoms.spaceMerged);
-    }
-
-    default: {
-      assert(false);
-      fail(vm);
-    }
-  }
+UnstableNode FailedSpace::cloneSpace(VM vm) {
+  return FailedSpace::build(vm);
 }
 
-void DeletedSpace::killSpace(Self self, VM vm) {
+void FailedSpace::killSpace(VM vm) {
+  // nothing to do
+}
+
+/////////////////
+// MergedSpace //
+/////////////////
+
+#include "MergedSpace-implem.hh"
+
+void MergedSpace::create(unit_t& self, VM vm, GR gr, MergedSpace from) {
+}
+
+UnstableNode MergedSpace::askSpace(VM vm) {
+  return Atom::build(vm, vm->coreatoms.merged);
+}
+
+UnstableNode MergedSpace::askVerboseSpace(VM vm) {
+  return Atom::build(vm, vm->coreatoms.merged);
+}
+
+UnstableNode MergedSpace::mergeSpace(VM vm) {
+  raise(vm, vm->coreatoms.spaceMerged);
+}
+
+void MergedSpace::commitSpace(VM vm, RichNode value) {
+  raise(vm, vm->coreatoms.spaceMerged);
+}
+
+UnstableNode MergedSpace::cloneSpace(VM vm) {
+  raise(vm, vm->coreatoms.spaceMerged);
+}
+
+void MergedSpace::killSpace(VM vm) {
+  // nothing to do
 }
 
 }

@@ -83,10 +83,38 @@ void printTemplateParameters(llvm::raw_fd_ostream& Out,
   const clang::TemplateParameterList *Params,
   const clang::TemplateArgumentList *Args = 0);
 
+void printActualTemplateParameters(llvm::raw_fd_ostream& Out,
+  const clang::TemplateParameterList *Params,
+  const clang::TemplateArgumentList *Args = 0);
+
 void parseFunction(const clang::FunctionDecl* function,
                    std::string& name, std::string& resultType,
                    std::string& formalParams, std::string& actualParams,
+                   std::string& reflectActualParams,
                    bool hasSelfParam);
+
+namespace internal {
+  template <class T>
+  struct Dereferencer {
+    static T deref(T&& value) {
+      return std::forward<T>(value);
+    }
+  };
+
+  template <class T>
+  struct Dereferencer<T*&&> {
+    static T& deref(T* value) {
+      return *value;
+    }
+  };
+
+  template <class T>
+  inline
+  auto dereference(T&& value) ->
+      decltype(Dereferencer<decltype(std::forward<T>(value))>::deref(std::forward<T>(value))) {
+    return Dereferencer<decltype(std::forward<T>(value))>::deref(std::forward<T>(value));
+  }
+}
 
 template <class T>
 T getValueParamAsIntegral(const SpecDecl* specDecl) {
@@ -95,8 +123,8 @@ T getValueParamAsIntegral(const SpecDecl* specDecl) {
   assert(templateArgs.size() == 1);
   assert(templateArgs[0].getKind() == clang::TemplateArgument::Integral);
 
-  auto result = templateArgs[0].getAsIntegral()->getLimitedValue(
-    std::numeric_limits<T>::max());
+  auto&& integralArg = internal::dereference(templateArgs[0].getAsIntegral());
+  auto result = integralArg.getLimitedValue(std::numeric_limits<T>::max());
 
   return (T) result;
 }

@@ -29,8 +29,30 @@
 
 namespace mozart {
 
+///////////////////////////////////////////////////////
+// Extracting arguments from Oz values to C++ values //
+///////////////////////////////////////////////////////
+
 template <class T>
 struct PrimitiveTypeToExpectedAtom {
+  inline
+  static atom_t result(VM vm);
+};
+
+template <>
+struct PrimitiveTypeToExpectedAtom<internal::intIfDifferentFromNativeInt> {
+  inline
+  static atom_t result(VM vm);
+};
+
+template <>
+struct PrimitiveTypeToExpectedAtom<size_t> {
+  inline
+  static atom_t result(VM vm);
+};
+
+template <>
+struct PrimitiveTypeToExpectedAtom<UUID> {
   inline
   static atom_t result(VM vm);
 };
@@ -43,8 +65,28 @@ template <class T>
 inline
 T getArgument(VM vm, RichNode argValue);
 
+template <>
+inline
+UnstableNode getArgument(VM vm, RichNode argValue);
+
+template <>
+inline
+RichNode getArgument(VM vm, RichNode argValue);
+
+template <class T>
+inline
+T* getPointerArgument(VM vm, RichNode argValue, const nchar* expectedType);
+
+template <class T>
+inline
+T* getPointerArgument(VM vm, RichNode argValue);
+
 inline
 void requireFeature(VM vm, RichNode feature);
+
+//////////////////////////////////
+// Working with Oz lists in C++ //
+//////////////////////////////////
 
 /**
  * Helper to build an Oz list in C++.
@@ -54,7 +96,7 @@ void requireFeature(VM vm, RichNode feature);
 class OzListBuilder {
 public:
   inline
-  OzListBuilder(VM vm);
+  explicit OzListBuilder(VM vm);
 
   template <class T>
   inline
@@ -66,41 +108,149 @@ public:
 
   inline
   UnstableNode get(VM vm);
+
+  template <typename T>
+  inline
+  UnstableNode get(VM vm, T&& tail);
 private:
   UnstableNode _head;
   NodeHole _tail;
 };
 
 /**
- * Apply a function on a list.
+ * Apply a function to each element of an Oz list
  *
- * For example, if the list is `a|b|c|d|rest`, then this function is equivalent
- * to::
- *
- *      MOZART_CHECK_OPRESULT(onHead(a));
- *      MOZART_CHECK_OPRESULT(onHead(b));
- *      MOZART_CHECK_OPRESULT(onHead(c));
- *      MOZART_CHECK_OPRESULT(onHead(d));
- *      return onTail(rest);
- *
- * The function onTail will **not** be called if the last element is `nil`. It
- * assumes the list all have the same type "T".
+ * Example: if list == `a|b|c|nil`, ozListForEach performs:
+ *   f(a);
+ *   f(b);
+ *   f(c);
  */
-template <class F, class G>
-inline
-void ozListForEach(VM vm, RichNode list, const F& onHead, const G& onTail);
-
 template <class F>
 inline
-void ozListForEach(VM vm, RichNode list, const F& onHead,
-                   const nchar* expectedType);
+auto ozListForEach(VM vm, RichNode list, const F& f,
+                   const nchar* expectedType)
+    -> typename std::enable_if<function_traits<F>::arity == 1, void>::type;
+
+/**
+ * Apply a function to each element of an Oz list, with index
+ *
+ * Example: if list == `a|b|c|nil`, ozListForEach performs:
+ *   f(a, 0);
+ *   f(b, 1);
+ *   f(c, 2);
+ */
+template <class F>
+inline
+auto ozListForEach(VM vm, RichNode list, const F& f,
+                   const nchar* expectedType)
+    -> typename std::enable_if<function_traits<F>::arity == 2, void>::type;
 
 inline
 size_t ozListLength(VM vm, RichNode list);
 
-template <class C>
+//////////////////////////////////////
+// Virtual strings and byte strings //
+//////////////////////////////////////
+
+// A priori internal, but could be used outside
+
 inline
-std::basic_string<C> vsToString(VM vm, RichNode vs);
+nativeint ozVSLengthForBufferNoRaise(VM vm, RichNode vs);
+
+inline
+bool ozVSGetNoRaise(VM vm, RichNode vs, std::vector<nchar>& output);
+
+inline
+nativeint ozVBSLengthForBufferNoRaise(VM vm, RichNode vbs);
+
+template <typename C>
+inline
+bool ozVBSGetNoRaise(VM vm, RichNode vbs, std::vector<C>& output);
+
+// Regular public API
+
+inline
+bool ozIsVirtualString(VM vm, RichNode vs);
+
+inline
+size_t ozVSLengthForBuffer(VM vm, RichNode vs);
+
+inline
+void ozVSGet(VM vm, RichNode vs, std::vector<nchar>& output);
+
+inline
+void ozVSGet(VM vm, RichNode vs, size_t bufSize, std::vector<nchar>& output);
+
+template <typename C>
+inline
+void ozVSGet(VM vm, RichNode vs, size_t bufSize, std::vector<C>& output);
+
+template <typename C>
+inline
+void ozVSGet(VM vm, RichNode vs, size_t bufSize, std::basic_string<C>& output);
+
+template <typename C = nchar>
+inline
+LString<C> ozVSGetAsLString(VM vm, RichNode vs, size_t bufSize);
+
+template <typename C>
+inline
+void ozVSGetNullTerminated(VM vm, RichNode vs, size_t bufSize,
+                           std::vector<C>& output);
+
+template <typename C = nchar>
+inline
+LString<C> ozVSGetNullTerminatedAsLString(VM vm, RichNode vs, size_t bufSize);
+
+inline
+size_t ozVSLength(VM vm, RichNode vs);
+
+inline
+bool ozIsVirtualByteString(VM vm, RichNode vs);
+
+inline
+size_t ozVBSLengthForBuffer(VM vm, RichNode vbs);
+
+template <typename C,
+          typename = typename std::enable_if<
+            std::is_same<C, char>::value ||
+            std::is_same<C, unsigned char>::value>::type>
+inline
+void ozVBSGet(VM vm, RichNode vbs, std::vector<C>& output);
+
+template <typename C,
+          typename = typename std::enable_if<
+            std::is_same<C, char>::value ||
+            std::is_same<C, unsigned char>::value>::type>
+inline
+void ozVBSGet(VM vm, RichNode vbs, size_t bufSize, std::vector<C>& output);
+
+inline
+size_t ozVBSLength(VM vm, RichNode vs);
+
+////////////////////////////////
+// Port-like usage of streams //
+////////////////////////////////
+
+template <typename T>
+inline
+void sendToReadOnlyStream(VM vm, UnstableNode& stream, T&& value);
+
+///////////////////////////////////////
+// Dealing with non-idempotent steps //
+///////////////////////////////////////
+
+template <typename Step>
+inline
+auto protectNonIdempotentStep(VM vm, const nchar* identity, const Step& step)
+    -> typename std::enable_if<!std::is_void<decltype(step())>::value,
+                               decltype(step())>::type;
+
+template <typename Step>
+inline
+auto protectNonIdempotentStep(VM vm, const nchar* identity, const Step& step)
+    -> typename std::enable_if<std::is_void<decltype(step())>::value,
+                               void>::type;
 
 }
 

@@ -27,8 +27,9 @@
 
 #include "boostenv-decl.hh"
 
+#include "boostenvutils.hh"
 #include "boostenvtcp.hh"
-#include "boostenvdatatypes.hh"
+#include "boostenvpipe.hh"
 
 #ifndef MOZART_GENERATOR
 
@@ -40,13 +41,11 @@ namespace mozart { namespace boostenv {
 
 ProtectedNode BoostBasedVM::allocAsyncIONode(StableNode* node) {
   _asyncIONodeCount++;
-  return ozProtect(vm, *node);
+  return vm->protect(*node);
 }
 
 void BoostBasedVM::releaseAsyncIONode(const ProtectedNode& node) {
   assert(_asyncIONodeCount > 0);
-
-  ozUnprotect(vm, node);
   _asyncIONodeCount--;
 }
 
@@ -89,133 +88,53 @@ void BoostBasedVM::postVMEvent(std::function<void()> callback) {
   _conditionWorkToDoInVM.notify_all();
 }
 
-nativeint BoostBasedVM::registerFile(std::FILE* file) {
-  nativeint result = 0;
-  while (openedFiles.count(result) != 0)
-    result++;
-
-  openedFiles[result] = file;
-  return result;
-}
-
-void BoostBasedVM::unregisterFile(nativeint fd) {
-  openedFiles.erase(fd);
-}
-
-std::FILE* BoostBasedVM::getFile(nativeint fd) {
-  auto iter = openedFiles.find(fd);
-
-  if (iter != openedFiles.end())
-    return iter->second;
-  else
-    raise(vm, MOZART_STR("system"), MOZART_STR("invalidfd"), fd);
-}
-
-std::FILE* BoostBasedVM::getFile(RichNode fd) {
-  return getFile(getArgument<nativeint>(vm, fd, MOZART_STR("filedesc")));
-}
-
 ///////////////
 // Utilities //
 ///////////////
 
-namespace internal {
-  template <class T>
-  inline
-  void ozListForEach(VM vm, RichNode list, size_t index,
-                     const nchar* expectedType,
-                     std::function<void (VM, size_t, T)> f) {
-    using namespace patternmatching;
-
-    T head;
-    UnstableNode tail;
-
-    if (matchesCons(vm, list, capture(head), capture(tail))) {
-      f(vm, index, head);
-      ozListForEach(vm, tail, index+1, expectedType, f);
-    } else if (matches(vm, list, vm->coreatoms.nil)) {
-      // end
-    } else {
-      raiseTypeError(vm, expectedType, list);
-    }
-  }
-}
-
-void ozStringToBuffer(VM vm, RichNode value, size_t size, char* buffer) {
-  internal::ozListForEach<char>(
-    vm, value, 0, MOZART_STR("string"),
-    [size, buffer] (VM vm, size_t i, char c) {
-      assert(i < size);
-      buffer[i] = c;
-    });
-}
-
-void ozStringToBuffer(VM vm, RichNode value, std::vector<char>& buffer) {
-  size_t size = ozListLength(vm, value);
-  buffer.resize(size);
-
-  internal::ozListForEach<char>(
-    vm, value, 0, MOZART_STR("string"),
-    [size, &buffer] (VM vm, size_t i, char c) {
-      assert(i < size);
-      buffer[i] = c;
-    });
-}
-
-std::string ozStringToStdString(VM vm, RichNode value) {
-  std::stringbuf buffer;
-
-  internal::ozListForEach<char>(
-    vm, value, 0, MOZART_STR("string"),
-    [&buffer] (VM vm, size_t i, char c) {
-      buffer.sputc(c);
-    });
-
-  return buffer.str();
-}
-
-UnstableNode stdStringToOzString(VM vm, const std::string& value) {
-  UnstableNode res = build(vm, vm->coreatoms.nil);
-
-  for (auto iter = value.rbegin(); iter != value.rend(); ++iter) {
-    res = buildCons(vm, *iter, std::move(res));
-  }
-
-  return std::move(res);
-}
-
-std::unique_ptr<nchar[]> systemStrToMozartStr(const char* str) {
+atom_t systemStrToAtom(VM vm, const char* str) {
   size_t len = std::strlen(str);
 
   auto ustr = std::unique_ptr<nchar[]>(new nchar[len+1]);
   for (size_t i = 0; i <= len; i++)
     ustr[i] = (nchar) str[i];
 
-  return ustr;
+  return vm->getAtom(len, ustr.get());
 }
 
-std::unique_ptr<nchar[]> systemStrToMozartStr(const std::string& str) {
+atom_t systemStrToAtom(VM vm, const std::string& str) {
   size_t len = str.length();
 
   auto ustr = std::unique_ptr<nchar[]>(new nchar[len+1]);
   for (size_t i = 0; i <= len; i++)
     ustr[i] = (nchar) str[i];
 
-  return ustr;
+  return vm->getAtom(len, ustr.get());
 }
 
-void raiseOSError(VM vm, int errnum) {
-  auto message = systemStrToMozartStr(std::strerror(errnum));
-  raise(vm, MOZART_STR("system"), errnum, message.get());
+template <typename T>
+void raiseOSError(VM vm, const nchar* function, nativeint errnum, T&& message) {
+  raiseSystem(vm, MOZART_STR("os"),
+              MOZART_STR("os"), function, errnum, std::forward<T>(message));
 }
 
-void raiseLastOSError(VM vm) {
-  raiseOSError(vm, errno);
+void raiseOSError(VM vm, const nchar* function, int errnum) {
+  raiseOSError(vm, function, errnum,
+               systemStrToAtom(vm, std::strerror(errnum)));
 }
 
-void raiseSystemError(VM vm, const boost::system::system_error& error) {
-  auto message = systemStrToMozartStr(error.what());
-  raise(vm, MOZART_STR("system"), error.code().value(), message.get());
+void raiseLastOSError(VM vm, const nchar* function) {
+  raiseOSError(vm, function, errno);
+}
+
+void raiseOSError(VM vm, const nchar* function, boost::system::error_code& ec) {
+  raiseOSError(vm, function, ec.value(), systemStrToAtom(vm, ec.message()));
+}
+
+void raiseOSError(VM vm, const nchar* function,
+                  const boost::system::system_error& error) {
+  raiseOSError(vm, function, error.code().value(),
+               systemStrToAtom(vm, error.what()));
 }
 
 } }

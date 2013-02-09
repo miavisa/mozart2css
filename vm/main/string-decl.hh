@@ -35,15 +35,11 @@ namespace mozart {
 // String //
 ////////////
 
-class String;
-
 #ifndef MOZART_GENERATOR
 #include "String-implem-decl.hh"
 #endif
 
 class String: public DataType<String>, WithValueBehavior {
-public:
-  typedef SelfType<String>::Self Self;
 public:
   static constexpr UUID uuid = "{163123b5-feaa-4e1d-8917-f74d81e11236}";
 
@@ -54,56 +50,56 @@ public:
   String(VM vm, const LString<nchar>& string) : _string(string) {}
 
   inline
-  String(VM vm, GR gr, Self self);
+  String(VM vm, GR gr, String& self);
 
 public:
   const LString<nchar>& value() const { return _string; }
 
   inline
-  bool equals(VM vm, Self right);
+  bool equals(VM vm, RichNode right);
 
 public:
   // Comparable interface
 
   inline
-  int compare(Self self, VM vm, RichNode right);
+  int compare(VM vm, RichNode right);
 
 public:
   // StringLike interface
 
-  bool isString(Self self, VM vm) {
+  bool isString(VM vm) {
     return true;
   }
 
-  bool isByteString(Self self, VM vm) {
+  bool isByteString(VM vm) {
     return false;
   }
 
   inline
-  LString<nchar>* stringGet(Self self, VM vm);
+  LString<nchar>* stringGet(VM vm);
 
   inline
-  LString<unsigned char>* byteStringGet(Self self, VM vm);
+  LString<unsigned char>* byteStringGet(RichNode self, VM vm);
 
   inline
-  nativeint stringCharAt(Self self, VM vm, RichNode offset);
+  nativeint stringCharAt(RichNode self, VM vm, RichNode offset);
 
   inline
-  UnstableNode stringAppend(Self self, VM vm, RichNode right);
+  UnstableNode stringAppend(RichNode self, VM vm, RichNode right);
 
   inline
-  UnstableNode stringSlice(Self self, VM vm, RichNode from, RichNode to);
+  UnstableNode stringSlice(RichNode self, VM vm, RichNode from, RichNode to);
 
   // Search for a string or a character.
   inline
-  void stringSearch(Self self, VM vm, RichNode from, RichNode needle,
+  void stringSearch(RichNode self, VM vm, RichNode from, RichNode needle,
                     UnstableNode& begin, UnstableNode& end);
 
   inline
-  bool stringHasPrefix(Self self, VM vm, RichNode prefix);
+  bool stringHasPrefix(VM vm, RichNode prefix);
 
   inline
-  bool stringHasSuffix(Self self, VM vm, RichNode suffix);
+  bool stringHasSuffix(VM vm, RichNode suffix);
 
 public:
   // Dottable interface
@@ -112,31 +108,18 @@ public:
   // is not trivial)
 
   inline
-  bool lookupFeature(Self self, VM vm, RichNode feature,
+  bool lookupFeature(RichNode self, VM vm, RichNode feature,
                      nullable<UnstableNode&> value);
 
   inline
-  bool lookupFeature(Self self, VM vm, nativeint feature,
+  bool lookupFeature(RichNode self, VM vm, nativeint feature,
                      nullable<UnstableNode&> value);
-
-public:
-  // VirtualString inteface
-
-  bool isVirtualString(Self self, VM vm) {
-    return true;
-  }
-
-  inline
-  void toString(Self self, VM vm, std::basic_ostream<nchar>& sink);
-
-  inline
-  nativeint vsLength(Self self, VM vm);
 
 public:
   // Miscellaneous
 
   inline
-  void printReprToStream(Self self, VM vm, std::ostream& out, int depth);
+  void printReprToStream(VM vm, std::ostream& out, int depth, int width);
 
 private:
   LString<nchar> _string;

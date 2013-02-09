@@ -191,8 +191,6 @@ private:
 // Dictionary //
 ////////////////
 
-class Dictionary;
-
 #ifndef MOZART_GENERATOR
 #include "Dictionary-implem-decl.hh"
 #endif
@@ -202,40 +200,38 @@ class Dictionary;
  */
 class Dictionary: public DataType<Dictionary>, public WithHome {
 public:
-  typedef SelfType<Dictionary>::Self Self;
-public:
   static atom_t getTypeAtom(VM vm) {
     return vm->getAtom(MOZART_STR("dictionary"));
   }
 
-  Dictionary(VM vm): WithHome(vm) {}
+  explicit Dictionary(VM vm): WithHome(vm) {}
 
   Dictionary(VM vm, NodeDictionary& src): WithHome(vm) {
     dict.clone(vm, src);
   }
 
   inline
-  Dictionary(VM vm, GR gr, Self from);
+  Dictionary(VM vm, GR gr, Dictionary& from);
 
 public:
   // Dottable interface
 
   inline
-  bool lookupFeature(Self self, VM vm, RichNode feature,
+  bool lookupFeature(VM vm, RichNode feature,
                      nullable<UnstableNode&> value);
 
   inline
-  bool lookupFeature(Self self, VM vm, nativeint feature,
+  bool lookupFeature(VM vm, nativeint feature,
                      nullable<UnstableNode&> value);
 
 public:
   // DotAssignable interface
 
-  void dotAssign(Self self, VM vm, RichNode feature, RichNode newValue) {
-    return dictPut(self, vm, feature, newValue);
+  void dotAssign(VM vm, RichNode feature, RichNode newValue) {
+    return dictPut(vm, feature, newValue);
   }
 
-  UnstableNode dotExchange(Self self, VM vm, RichNode feature,
+  UnstableNode dotExchange(RichNode self, VM vm, RichNode feature,
                            RichNode newValue) {
     return dictExchange(self, vm, feature, newValue);
   }
@@ -244,53 +240,52 @@ public:
   // DictionaryLike interface
 
   inline
-  bool isDictionary(Self self, VM vm);
+  bool isDictionary(VM vm);
 
   inline
-  bool dictIsEmpty(Self self, VM vm);
+  bool dictIsEmpty(VM vm);
 
   inline
-  bool dictMember(Self self, VM vm, RichNode feature);
+  bool dictMember(VM vm, RichNode feature);
 
   inline
-  UnstableNode dictGet(Self self, VM vm, RichNode feature);
+  UnstableNode dictGet(RichNode self, VM vm, RichNode feature);
 
   inline
-  UnstableNode dictCondGet(Self self, VM vm, RichNode feature,
-                           RichNode defaultValue);
+  UnstableNode dictCondGet(VM vm, RichNode feature, RichNode defaultValue);
 
   inline
-  void dictPut(Self self, VM vm, RichNode feature, RichNode newValue);
+  void dictPut(VM vm, RichNode feature, RichNode newValue);
 
   inline
-  UnstableNode dictExchange(Self self, VM vm, RichNode feature,
+  UnstableNode dictExchange(RichNode self, VM vm, RichNode feature,
                             RichNode newValue);
 
   inline
-  UnstableNode dictCondExchange(Self self, VM vm, RichNode feature,
+  UnstableNode dictCondExchange(VM vm, RichNode feature,
                                 RichNode defaultValue, RichNode newValue);
 
   inline
-  void dictRemove(Self self, VM vm, RichNode feature);
+  void dictRemove(VM vm, RichNode feature);
 
   inline
-  void dictRemoveAll(Self self, VM vm);
+  void dictRemoveAll(VM vm);
 
   inline
-  UnstableNode dictKeys(Self self, VM vm);
+  UnstableNode dictKeys(VM vm);
 
   inline
-  UnstableNode dictEntries(Self self, VM vm);
+  UnstableNode dictEntries(VM vm);
 
   inline
-  UnstableNode dictItems(Self self, VM vm);
+  UnstableNode dictItems(VM vm);
 
   inline
-  UnstableNode dictClone(Self self, VM vm);
+  UnstableNode dictClone(VM vm);
 
 public:
   inline
-  void printReprToStream(Self self, VM vm, std::ostream& out, int depth);
+  void printReprToStream(VM vm, std::ostream& out, int depth, int width);
 
 private:
   NodeDictionary dict;

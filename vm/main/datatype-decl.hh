@@ -44,7 +44,7 @@ namespace mozart {
  * class SomeDataType: public DataType<SomeDataType> { ... };
  */
 template <class T>
-class DataType {
+class DataType: public DataTypeStorageHelper<T, typename Storage<T>::Type> {
 public:
   static Type type() {
     return TypeInfoOf<T>::type();
@@ -68,7 +68,7 @@ public:
   WithHome(VM vm);
 
   inline
-  WithHome(VM vm, GR gr, SpaceRef fromHome);
+  WithHome(VM vm, GR gr, WithHome& from);
 
   Space* home() {
     return _home;
@@ -91,8 +91,7 @@ template<class...>
 struct ImplementedBy{};
 
 struct NoAutoWait{};
-
-struct Copyable{};
+struct NoAutoReflectiveCalls{};
 
 struct Transient{};
 

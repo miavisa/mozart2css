@@ -335,13 +335,18 @@ private:
     _mark = false;
   }
 
-// Constraint subsystem
-public:
-  inline
-  GecodeSpace& getCstSpace();
+#ifdef VM_HAS_CSS
+public: 
+  GecodeSpace& getCstSpace() {
+    if (_cstSpace == nullptr)
+      _cstSpace = new GecodeSpace;
+    return *_cstSpace;
+  }
 
-  inline
-  bool hasConstraintSpace();
+  bool hasConstraintSpace() {
+    return _cstSpace != nullptr;
+  }
+#endif
 
 // Fields
 
@@ -373,8 +378,9 @@ private:
   SpaceScript script;
 
   // Gecode space associated with this mozart space
+#ifdef VM_HAS_CSS
   GecodeSpace* _cstSpace;
-
+#endif
   /*
    * Maintaining a counter of threads
    * Invariants:

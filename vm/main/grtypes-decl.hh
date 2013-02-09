@@ -33,8 +33,6 @@ namespace mozart {
 // GRedToStable //
 //////////////////
 
-class GRedToStable;
-
 class GRedToStableBase: public TypeInfo {
 public:
   GRedToStableBase(std::string name, const UUID& uuid,
@@ -64,8 +62,6 @@ public:
 class GRedToStable: public DataType<GRedToStable>, StoredAs<StableNode*>,
   NoAutoGCollect, NoAutoSClone, BasedOn<GRedToStableBase> {
 public:
-  typedef SelfType<GRedToStable>::Self Self;
-public:
   GRedToStable(StableNode* dest) : _dest(dest) {}
 
   static void create(StableNode*& self, VM vm, StableNode* dest) {
@@ -84,8 +80,6 @@ private:
 ////////////////////
 // GRedToUnstable //
 ////////////////////
-
-class GRedToUnstable;
 
 class GRedToUnstableBase: public TypeInfo {
 public:
@@ -115,8 +109,6 @@ public:
 
 class GRedToUnstable: public DataType<GRedToUnstable>, StoredAs<UnstableNode*>,
   NoAutoGCollect, NoAutoSClone, BasedOn<GRedToUnstableBase> {
-public:
-  typedef SelfType<GRedToUnstable>::Self Self;
 public:
   GRedToUnstable(UnstableNode* dest) : _dest(dest) {}
 

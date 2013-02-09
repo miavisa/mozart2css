@@ -3,9 +3,11 @@ set(CLANG_BUILD_DIR "${LLVM_BUILD_DIR}/tools/clang")
 
 add_definitions(-D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS)
 
-set(CMAKE_CXX_COMPILER "${LLVM_BUILD_DIR}/bin/clang++")
-set(CMAKE_CC_COMPILER "${LLVM_BUILD_DIR}/bin/clang")
-set(CMAKE_CXX_FLAGS "-Wall -std=c++0x")
+set(CMAKE_CXX_FLAGS "-Wall -Wno-enum-compare -Wno-strict-aliasing -std=gnu++0x ${CMAKE_CXX_FLAGS}")
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+endif()
 
 include_directories(
   "${LLVM_SRC_DIR}/include"

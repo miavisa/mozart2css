@@ -25,112 +25,28 @@
 #ifndef __STORAGE_H
 #define __STORAGE_H
 
-#include "core-forward-decl.hh"
+#include "mozartcore.hh"
 
-#include "type-decl.hh"
-#include "memword.hh"
-#include "arrays.hh"
+#ifndef MOZART_GENERATOR
+
+#include <iostream>
 
 namespace mozart {
 
-template<class I, class E>
-class ImplWithArray {
-  I* p;
-public:
-  ImplWithArray(I* p) : p(p) {}
-
-  I* operator->() {
-    return p;
-  }
-
-  E& operator[](size_t i) {
-    return getRawArray()[i];
-  }
-
-  StaticArray<E> getArray(size_t size) {
-    return StaticArray<E>(getRawArray(), size);
-  }
-private:
-  template <class T, class U>
-  friend class Accessor;
-
-  E* getRawArray() {
-    return static_cast<E*>(static_cast<void*>(
-      static_cast<char*>(static_cast<void*>(p)) + sizeof(I)));
-  }
-};
-
-// Marker class that specifies to use the default storage (pointer to value)
-template<class T>
-class DefaultStorage {
-};
-
-// Meta-function from Type to its storage
-template<class T>
-class Storage {
-public:
-  typedef DefaultStorage<T> Type;
-};
-
-template<class T, class U>
-class Accessor {
-public:
-  template<class... Args>
-  static void init(Type& type, MemWord& value, VM vm, Args&&... args) {
-    type = T::type();
-    value.alloc<U>(vm);
-    T::create(value.get<U>(), vm, std::forward<Args>(args)...);
-  }
-
-  static T get(MemWord value) {
-    return T(value.get<U>());
-  }
-};
+////////////////////////////
+// ImplAndCleanupListNode //
+////////////////////////////
 
 template<class T>
-class Accessor<T, DefaultStorage<T>> {
-public:
-  template<class... Args>
-  static void init(Type& type, MemWord& value, VM vm, Args&&... args) {
-    type = T::type();
-    T* val = new (vm) T(vm, std::forward<Args>(args)...);
-    value.init<T*>(vm, val);
-  }
+template<class... Args>
+ImplAndCleanupListNode<T>::ImplAndCleanupListNode(VM vm, Args&&... args):
+  impl(vm, std::forward<Args>(args)...) {
 
-  static T& get(MemWord value) {
-    return *(value.get<T*>());
-  }
-};
-
-template<class T, class E>
-class Accessor<T, ImplWithArray<T, E>> {
-public:
-  template<class... Args>
-  static void init(Type& type, MemWord& value, VM vm,
-                   size_t elemCount, Args&&... args) {
-    // Allocate memory
-    void* memory = operator new (sizeof(T) + elemCount*sizeof(E), vm);
-    ImplWithArray<T, E> implWithArray(static_cast<T*>(memory));
-
-    // Initialize the array
-    E* array = implWithArray.getRawArray();
-    new (array) E[elemCount];
-
-    // Initialize the impl
-    T* impl = implWithArray.operator->();
-    new (impl) T(vm, elemCount, implWithArray.getArray(elemCount),
-                 std::forward<Args>(args)...);
-
-    // Fill in output parameters
-    type = T::type();
-    value.init<T*>(vm, impl);
-  }
-
-  static T& get(MemWord value) {
-    return *(value.get<T*>());
-  }
-};
+  vm->onCleanup(&this->cleanupListNode, [this] (VM) { impl.~T(); });
+}
 
 }
+
+#endif // MOZART_GENERATOR
 
 #endif // __STORAGE_H

@@ -180,7 +180,7 @@ public:
          bool createSuspended = false);
 
   Thread(VM vm, Space* space, RichNode abstraction,
-         size_t argc, UnstableNode* args[],
+         size_t argc, RichNode args[],
          bool createSuspended = false);
 
   inline
@@ -192,6 +192,11 @@ public:
     Super::kill();
   }
 
+public:
+  StableNode& getTerminationVar() {
+    return _terminationVar;
+  }
+
   void injectException(StableNode* exception) {
     injectedException = exception;
 
@@ -199,15 +204,16 @@ public:
       resume();
   }
 
+public:
   void beforeGR();
   void afterGR();
 
   Runnable* gCollect(GC gc);
   Runnable* sClone(SC sc);
+
 protected:
-  void terminate() {
-    Super::terminate();
-  }
+  inline
+  void terminate();
 
   void dispose() {
     xregs.release(vm);
@@ -221,10 +227,12 @@ protected:
 
     Super::dispose();
   }
+public:
+  void dump();
 private:
   inline
   void constructor(VM vm, RichNode abstraction,
-                   size_t argc, UnstableNode* args[],
+                   size_t argc, RichNode args[],
                    bool createSuspended);
 
   inline
@@ -260,6 +268,15 @@ private:
                StaticArray<StableNode>& gregs,
                StaticArray<StableNode>& kregs,
                bool& preempted);
+
+  inline
+  void doGetCallInfo(VM vm, RichNode& target, size_t& arity,
+                     ProgramCounter& start, size_t& Xcount,
+                     StaticArray<StableNode>& Gs,
+                     StaticArray<StableNode>& Ks);
+
+  inline
+  void derefReflectiveTarget(VM vm, RichNode& target);
 
   void patternMatch(VM vm, RichNode value, RichNode patterns,
                     StableNode*& abstraction,
@@ -301,6 +318,7 @@ private:
   XRegArray xregs;
   ThreadStack stack;
   StableNode* injectedException;
+  StableNode _terminationVar;
 };
 
 }

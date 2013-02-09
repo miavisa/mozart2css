@@ -36,24 +36,26 @@ namespace mozart {
 //////////////////
 
 template <class This>
-VariableBase<This>::VariableBase(VM vm, GR gr, Self from):
-  WithHome(vm, gr, from->home()) {
+VariableBase<This>::VariableBase(VM vm, GR gr, This& from):
+  WithHome(vm, gr, from) {
 
-  for (auto iter = from->pendings.begin();
-       iter != from->pendings.end();
+  for (auto iter = from.pendings.begin();
+       iter != from.pendings.end();
        ++iter) {
     pendings.push_back(vm, *iter);
     gr->copyStableRef(pendings.back(), pendings.back());
   }
+
+  _needed = from._needed;
 }
 
 template <class This>
-void VariableBase<This>::addToSuspendList(Self self, VM vm, RichNode variable) {
+void VariableBase<This>::addToSuspendList(VM vm, RichNode variable) {
   pendings.push_back(vm, variable.getStableRef(vm));
 }
 
 template <class This>
-void VariableBase<This>::markNeeded(Self self, VM vm) {
+void VariableBase<This>::markNeeded(VM vm) {
   /* TODO What's supposed to happen if we're in a subspace?
    * The behavior of Mozart 1.4.0 was to send the needed flag up through
    * space boundaries, effectively making the original variable needed.
@@ -70,7 +72,7 @@ void VariableBase<This>::markNeeded(Self self, VM vm) {
 }
 
 template <class This>
-void VariableBase<This>::doBind(Self self, VM vm, RichNode src) {
+void VariableBase<This>::doBind(RichNode self, VM vm, RichNode src) {
   if (vm->isOnTopLevel()) {
     // The simple, fast binding when on top-level
     if (_needed) {
@@ -86,13 +88,12 @@ void VariableBase<This>::doBind(Self self, VM vm, RichNode src) {
 }
 
 template <class This>
-void VariableBase<This>::bindSubSpace(Self self, VM vm, RichNode src) {
+void VariableBase<This>::bindSubSpace(RichNode self, VM vm, RichNode src) {
   Space* currentSpace = vm->getCurrentSpace();
 
   // Is it a speculative binding?
   if (home() != currentSpace) {
-    currentSpace->makeBackupForSpeculativeBinding(
-      RichNode(self).getStableRef(vm));
+    currentSpace->makeBackupForSpeculativeBinding(self.getStableRef(vm));
   }
 
   // Actual binding
@@ -140,9 +141,10 @@ void VariableBase<This>::wakeUpPendingsSubSpace(VM vm, Space* currentSpace) {
 
 #include "Variable-implem.hh"
 
-Variable::Variable(VM vm, GR gr, Self from): VariableBase(vm, gr, from) {}
+Variable::Variable(VM vm, GR gr, Variable& from): VariableBase(vm, gr, from) {
+}
 
-void Variable::wakeUp(Self self, VM vm) {
+void Variable::wakeUp(RichNode self, VM vm) {
   UnstableNode temp = Unit::build(vm);
   return bind(self, vm, temp);
 }
@@ -151,7 +153,7 @@ bool Variable::shouldWakeUpUnderSpace(VM vm, Space* space) {
   return home()->isAncestor(space);
 }
 
-void Variable::bind(Self self, VM vm, RichNode src) {
+void Variable::bind(RichNode self, VM vm, RichNode src) {
   doBind(self, vm, src);
 }
 
@@ -161,14 +163,15 @@ void Variable::bind(Self self, VM vm, RichNode src) {
 
 #include "ReadOnlyVariable-implem.hh"
 
-ReadOnlyVariable::ReadOnlyVariable(VM vm, GR gr, Self from):
-  VariableBase(vm, gr, from) {}
+ReadOnlyVariable::ReadOnlyVariable(VM vm, GR gr, ReadOnlyVariable& from):
+  VariableBase(vm, gr, from) {
+}
 
-void ReadOnlyVariable::bind(Self self, VM vm, RichNode src) {
+void ReadOnlyVariable::bind(RichNode self, VM vm, RichNode src) {
   waitFor(vm, self);
 }
 
-void ReadOnlyVariable::bindReadOnly(Self self, VM vm, RichNode src) {
+void ReadOnlyVariable::bindReadOnly(RichNode self, VM vm, RichNode src) {
   doBind(self, vm, src);
 }
 
@@ -178,38 +181,37 @@ void ReadOnlyVariable::bindReadOnly(Self self, VM vm, RichNode src) {
 
 #include "OptVar-implem.hh"
 
-void OptVar::create(SpaceRef& self, VM vm, GR gr, Self from) {
-  gr->copySpace(self, from.get().home());
+void OptVar::create(SpaceRef& self, VM vm, GR gr, OptVar from) {
+  gr->copySpace(self, from.home());
 }
 
-void OptVar::addToSuspendList(Self self, VM vm, RichNode variable) {
+void OptVar::addToSuspendList(RichNode self, VM vm, RichNode variable) {
   self.become(vm, Variable::build(vm));
   DataflowVariable(self).addToSuspendList(vm, variable);
 }
 
-void OptVar::markNeeded(Self self, VM vm) {
+void OptVar::markNeeded(RichNode self, VM vm) {
   self.become(vm, Variable::build(vm));
   DataflowVariable(self).markNeeded(vm);
 }
 
-void OptVar::bind(Self self, VM vm, UnstableNode&& src) {
+void OptVar::bind(RichNode self, VM vm, UnstableNode&& src) {
   makeBackupForSpeculativeBindingIfNeeded(self, vm);
   self.become(vm, std::move(src));
 }
 
-void OptVar::bind(Self self, VM vm, RichNode src) {
+void OptVar::bind(RichNode self, VM vm, RichNode src) {
   makeBackupForSpeculativeBindingIfNeeded(self, vm);
   self.become(vm, src);
 }
 
-void OptVar::makeBackupForSpeculativeBindingIfNeeded(Self& self, VM vm) {
+void OptVar::makeBackupForSpeculativeBindingIfNeeded(RichNode self, VM vm) {
   // Is it a speculative binding?
   if (!vm->isOnTopLevel()) {
     Space* currentSpace = vm->getCurrentSpace();
     if (home() != currentSpace) {
       // Yes it is, make the backup
-      currentSpace->makeBackupForSpeculativeBinding(
-        RichNode(self).getStableRef(vm));
+      currentSpace->makeBackupForSpeculativeBinding(self.getStableRef(vm));
     }
   }
 }
@@ -220,8 +222,8 @@ void OptVar::makeBackupForSpeculativeBindingIfNeeded(Self& self, VM vm) {
 
 #include "ReadOnly-implem.hh"
 
-void ReadOnly::create(StableNode*& self, VM vm, GR gr, Self from) {
-  gr->copyStableRef(self, from.get().getUnderlying());
+void ReadOnly::create(StableNode*& self, VM vm, GR gr, ReadOnly from) {
+  gr->copyStableRef(self, from.getUnderlying());
 }
 
 void ReadOnly::newReadOnly(StableNode& dest, VM vm, RichNode underlying) {
@@ -247,10 +249,10 @@ UnstableNode ReadOnly::newReadOnly(VM vm, RichNode underlying) {
 bool ReadOnly::needsProtection(VM vm, RichNode underlying) {
   // TODO This is hardly nice. There should be a general predicate here.
   return underlying.is<Variable>() || underlying.is<OptVar>() ||
-    underlying.is<ReadOnlyVariable>();
+    underlying.is<ReadOnlyVariable>() || underlying.is<ReflectiveVariable>();
 }
 
-void ReadOnly::wakeUp(Self self, VM vm) {
+void ReadOnly::wakeUp(RichNode self, VM vm) {
   RichNode underlying = *_underlying;
 
   if (needsProtection(vm, underlying)) {
@@ -265,7 +267,7 @@ bool ReadOnly::shouldWakeUpUnderSpace(VM vm, Space* space) {
   return true;
 }
 
-void ReadOnly::addToSuspendList(Self self, VM vm, RichNode variable) {
+void ReadOnly::addToSuspendList(VM vm, RichNode variable) {
   DataflowVariable(*_underlying).addToSuspendList(vm, variable);
 }
 
@@ -273,11 +275,11 @@ bool ReadOnly::isNeeded(VM vm) {
   return DataflowVariable(*_underlying).isNeeded(vm);
 }
 
-void ReadOnly::markNeeded(Self self, VM vm) {
+void ReadOnly::markNeeded(VM vm) {
   DataflowVariable(*_underlying).markNeeded(vm);
 }
 
-void ReadOnly::bind(Self self, VM vm, RichNode src) {
+void ReadOnly::bind(VM vm, RichNode src) {
   return waitFor(vm, *_underlying);
 }
 
@@ -287,15 +289,15 @@ void ReadOnly::bind(Self self, VM vm, RichNode src) {
 
 #include "FailedValue-implem.hh"
 
-void FailedValue::create(StableNode*& self, VM vm, GR gr, Self from) {
-  gr->copyStableRef(self, from.get().getUnderlying());
+void FailedValue::create(StableNode*& self, VM vm, GR gr, FailedValue from) {
+  gr->copyStableRef(self, from.getUnderlying());
 }
 
 void FailedValue::raiseUnderlying(VM vm) {
   return raise(vm, *_underlying);
 }
 
-void FailedValue::addToSuspendList(Self self, VM vm, RichNode variable) {
+void FailedValue::addToSuspendList(VM vm, RichNode variable) {
   assert(false);
 }
 
@@ -303,11 +305,11 @@ bool FailedValue::isNeeded(VM vm) {
   return true;
 }
 
-void FailedValue::markNeeded(Self self, VM vm) {
+void FailedValue::markNeeded(VM vm) {
   // Nothing to do
 }
 
-void FailedValue::bind(Self self, VM vm, RichNode src) {
+void FailedValue::bind(VM vm, RichNode src) {
   return raiseUnderlying(vm);
 }
 

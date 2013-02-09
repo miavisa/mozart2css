@@ -37,16 +37,16 @@ namespace mozart {
 
 #include "Boolean-implem.hh"
 
-void Boolean::create(bool& self, VM vm, GR gr, Self from) {
-  self = from.get().value();
+void Boolean::create(bool& self, VM vm, GR gr, Boolean from) {
+  self = from.value();
 }
 
-bool Boolean::equals(VM vm, Self right) {
-  return value() == right.get().value();
+bool Boolean::equals(VM vm, RichNode right) {
+  return value() == right.as<Boolean>().value();
 }
 
-int Boolean::compareFeatures(VM vm, Self right) {
-  if (value() == right.get().value())
+int Boolean::compareFeatures(VM vm, RichNode right) {
+  if (value() == right.as<Boolean>().value())
     return 0;
   else if (value())
     return 1;
@@ -54,12 +54,8 @@ int Boolean::compareFeatures(VM vm, Self right) {
     return -1;
 }
 
-void Boolean::toString(Self self, VM vm, std::basic_ostream<nchar>& sink) {
-  sink << (value() ? MOZART_STR("true") : MOZART_STR("false"));
-}
-
-nativeint Boolean::vsLength(Self self, VM vm) {
-  return value() ? 4 : 5;
+UnstableNode Boolean::serialize(VM vm, SE se) {
+  return buildTuple(vm, MOZART_STR("bool"), value());
 }
 
 }

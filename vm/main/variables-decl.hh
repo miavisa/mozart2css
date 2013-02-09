@@ -36,41 +36,39 @@ namespace mozart {
 template <class This>
 class VariableBase: public WithHome {
 public:
-  typedef typename SelfType<This>::Self Self;
-public:
-  VariableBase(VM vm): WithHome(vm) {}
+  explicit VariableBase(VM vm): WithHome(vm), _needed(false) {}
 
-  VariableBase(VM vm, Space* home): WithHome(home) {}
+  VariableBase(VM vm, Space* home): WithHome(home), _needed(false) {}
 
   inline
-  VariableBase(VM vm, GR gr, Self from);
+  VariableBase(VM vm, GR gr, This& from);
 
 public:
   // DataflowVariable interface
 
   inline
-  void addToSuspendList(Self self, VM vm, RichNode variable);
+  void addToSuspendList(VM vm, RichNode variable);
 
   bool isNeeded(VM vm) {
     return _needed;
   }
 
   inline
-  void markNeeded(Self self, VM vm);
+  void markNeeded(VM vm);
 
   /* To be implemented in subclasses
   inline
-  void bind(Self self, VM vm, RichNode src);
+  void bind(VM vm, RichNode src);
   */
 
 protected:
   inline
-  void doBind(Self self, VM vm, RichNode src);
+  void doBind(RichNode self, VM vm, RichNode src);
 
 private:
   // TODO Might be a good candidate for noinline
   inline
-  void bindSubSpace(Self self, VM vm, RichNode src);
+  void bindSubSpace(RichNode self, VM vm, RichNode src);
 
   inline
   void wakeUpPendings(VM vm);
@@ -89,8 +87,6 @@ private:
 // Variable //
 //////////////
 
-class Variable;
-
 #ifndef MOZART_GENERATOR
 #include "Variable-implem-decl.hh"
 #endif
@@ -98,20 +94,18 @@ class Variable;
 class Variable: public DataType<Variable>, public VariableBase<Variable>,
   Transient, WithVariableBehavior<90> {
 public:
-  typedef SelfType<Variable>::Self Self;
-public:
-  Variable(VM vm): VariableBase(vm) {}
+  explicit Variable(VM vm): VariableBase(vm) {}
 
   Variable(VM vm, Space* home): VariableBase(vm, home) {}
 
   inline
-  Variable(VM vm, GR gr, Self from);
+  Variable(VM vm, GR gr, Variable& from);
 
 public:
   // Wakeable interface
 
   inline
-  void wakeUp(Self self, VM vm);
+  void wakeUp(RichNode self, VM vm);
 
   inline
   bool shouldWakeUpUnderSpace(VM vm, Space* space);
@@ -120,12 +114,12 @@ public:
   // DataflowVariable interface
 
   inline
-  void bind(Self self, VM vm, RichNode src);
+  void bind(RichNode self, VM vm, RichNode src);
 
 public:
   // Miscellaneous
 
-  void printReprToStream(Self self, VM vm, std::ostream& out, int depth) {
+  void printReprToStream(VM vm, std::ostream& out, int depth, int width) {
     out << "_";
   }
 };
@@ -138,8 +132,6 @@ public:
 // ReadOnlyVariable //
 //////////////////////
 
-class ReadOnlyVariable;
-
 #ifndef MOZART_GENERATOR
 #include "ReadOnlyVariable-implem-decl.hh"
 #endif
@@ -148,31 +140,29 @@ class ReadOnlyVariable: public DataType<ReadOnlyVariable>,
   public VariableBase<ReadOnlyVariable>,
   Transient, WithVariableBehavior<80> {
 public:
-  typedef SelfType<ReadOnlyVariable>::Self Self;
-public:
-  ReadOnlyVariable(VM vm): VariableBase(vm) {}
+  explicit ReadOnlyVariable(VM vm): VariableBase(vm) {}
 
   ReadOnlyVariable(VM vm, Space* home): VariableBase(vm, home) {}
 
   inline
-  ReadOnlyVariable(VM vm, GR gr, Self from);
+  ReadOnlyVariable(VM vm, GR gr, ReadOnlyVariable& from);
 
 public:
   // DataflowVariable interface
 
   inline
-  void bind(Self self, VM vm, RichNode src);
+  void bind(RichNode self, VM vm, RichNode src);
 
 public:
   // BindableReadOnly interface
 
   inline
-  void bindReadOnly(Self self, VM vm, RichNode src);
+  void bindReadOnly(RichNode self, VM vm, RichNode src);
 
 public:
   // Miscellaneous
 
-  void printReprToStream(Self self, VM vm, std::ostream& out, int depth) {
+  void printReprToStream(VM vm, std::ostream& out, int depth, int width) {
     out << "!!_";
   }
 };
@@ -185,8 +175,6 @@ public:
 // OptVar //
 ////////////
 
-class OptVar;
-
 #ifndef MOZART_GENERATOR
 #include "OptVar-implem-decl.hh"
 #endif
@@ -194,9 +182,7 @@ class OptVar;
 class OptVar: public DataType<OptVar>, public WithHome,
   Transient, StoredAs<SpaceRef>, WithVariableBehavior<100> {
 public:
-  typedef SelfType<OptVar>::Self Self;
-public:
-  OptVar(SpaceRef home): WithHome(home) {}
+  explicit OptVar(SpaceRef home): WithHome(home) {}
 
   static void create(SpaceRef& self, VM vm) {
     self = vm->getCurrentSpace();
@@ -207,35 +193,35 @@ public:
   }
 
   inline
-  static void create(SpaceRef& self, VM vm, GR gr, Self from);
+  static void create(SpaceRef& self, VM vm, GR gr, OptVar from);
 
 public:
   // DataflowVariable interface
 
   inline
-  void addToSuspendList(Self self, VM vm, RichNode variable);
+  void addToSuspendList(RichNode self, VM vm, RichNode variable);
 
   bool isNeeded(VM vm) {
     return false;
   }
 
   inline
-  void markNeeded(Self self, VM vm);
+  void markNeeded(RichNode self, VM vm);
 
   inline
-  void bind(Self self, VM vm, UnstableNode&& src);
+  void bind(RichNode self, VM vm, UnstableNode&& src);
 
   inline
-  void bind(Self self, VM vm, RichNode src);
+  void bind(RichNode self, VM vm, RichNode src);
 
 private:
   inline
-  void makeBackupForSpeculativeBindingIfNeeded(Self& self, VM vm);
+  void makeBackupForSpeculativeBindingIfNeeded(RichNode self, VM vm);
 
 public:
   // Miscellaneous
 
-  void printReprToStream(Self self, VM vm, std::ostream& out, int depth) {
+  void printReprToStream(VM vm, std::ostream& out, int depth, int width) {
     out << "_<optimized>";
   }
 };
@@ -248,8 +234,6 @@ public:
 // ReadOnly //
 //////////////
 
-class ReadOnly;
-
 #ifndef MOZART_GENERATOR
 #include "ReadOnly-implem-decl.hh"
 #endif
@@ -257,16 +241,14 @@ class ReadOnly;
 class ReadOnly: public DataType<ReadOnly>, Transient, StoredAs<StableNode*>,
   WithVariableBehavior<80> {
 public:
-  typedef SelfType<ReadOnly>::Self Self;
-public:
-  ReadOnly(StableNode* underlying): _underlying(underlying) {}
+  explicit ReadOnly(StableNode* underlying): _underlying(underlying) {}
 
   static void create(StableNode*& self, VM vm, StableNode* underlying) {
     self = underlying;
   }
 
   inline
-  static void create(StableNode*& self, VM vm, GR gr, Self from);
+  static void create(StableNode*& self, VM vm, GR gr, ReadOnly from);
 
 public:
   inline
@@ -288,7 +270,7 @@ public:
   // Wakeable interface
 
   inline
-  void wakeUp(Self self, VM vm);
+  void wakeUp(RichNode self, VM vm);
 
   inline
   bool shouldWakeUpUnderSpace(VM vm, Space* space);
@@ -297,22 +279,22 @@ public:
   // DataflowVariable interface
 
   inline
-  void addToSuspendList(Self self, VM vm, RichNode variable);
+  void addToSuspendList(VM vm, RichNode variable);
 
   inline
   bool isNeeded(VM vm);
 
   inline
-  void markNeeded(Self self, VM vm);
+  void markNeeded(VM vm);
 
   inline
-  void bind(Self self, VM vm, RichNode src);
+  void bind(VM vm, RichNode src);
 
 public:
   // Miscellaneous
 
-  void printReprToStream(Self self, VM vm, std::ostream& out, int depth) {
-    out << "!!" << repr(vm, *_underlying, depth);
+  void printReprToStream(VM vm, std::ostream& out, int depth, int width) {
+    out << "!!" << repr(vm, *_underlying, depth, width);
   }
 
 private:
@@ -327,8 +309,6 @@ private:
 // FailedValue //
 /////////////////
 
-class FailedValue;
-
 #ifndef MOZART_GENERATOR
 #include "FailedValue-implem-decl.hh"
 #endif
@@ -336,16 +316,14 @@ class FailedValue;
 class FailedValue: public DataType<FailedValue>,
   Transient, StoredAs<StableNode*>, WithVariableBehavior<10> {
 public:
-  typedef SelfType<FailedValue>::Self Self;
-public:
-  FailedValue(StableNode* underlying): _underlying(underlying) {}
+  explicit FailedValue(StableNode* underlying): _underlying(underlying) {}
 
   static void create(StableNode*& self, VM vm, StableNode* underlying) {
     self = underlying;
   }
 
   inline
-  static void create(StableNode*& self, VM vm, GR gr, Self from);
+  static void create(StableNode*& self, VM vm, GR gr, FailedValue from);
 
 public:
   StableNode* getUnderlying() {
@@ -359,22 +337,22 @@ public:
   // DataflowVariable interface
 
   inline
-  void addToSuspendList(Self self, VM vm, RichNode variable);
+  void addToSuspendList(VM vm, RichNode variable);
 
   inline
   bool isNeeded(VM vm);
 
   inline
-  void markNeeded(Self self, VM vm);
+  void markNeeded(VM vm);
 
   inline
-  void bind(Self self, VM vm, RichNode src);
+  void bind(VM vm, RichNode src);
 
 public:
   // Miscellaneous
 
-  void printReprToStream(Self self, VM vm, std::ostream& out, int depth) {
-    out << "<Failed " << repr(vm, *_underlying, depth) << ">";
+  void printReprToStream(VM vm, std::ostream& out, int depth, int width) {
+    out << "<Failed " << repr(vm, *_underlying, depth, width) << ">";
   }
 
 private:

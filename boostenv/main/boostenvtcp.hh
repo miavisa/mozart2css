@@ -28,7 +28,6 @@
 #include "boostenvtcp-decl.hh"
 
 #include "boostenv-decl.hh"
-#include "boostenvdatatypes-decl.hh"
 
 #ifndef MOZART_GENERATOR
 
@@ -39,8 +38,7 @@ namespace mozart { namespace boostenv {
 ///////////////////
 
 TCPConnection::TCPConnection(BoostBasedVM& environment):
-  _environment(environment), _resolver(environment.io_service),
-  _socket(environment.io_service) {
+  BaseSocketConnection(environment), _resolver(environment.io_service) {
 }
 
 void TCPConnection::startAsyncConnect(std::string host, std::string service,
@@ -48,14 +46,14 @@ void TCPConnection::startAsyncConnect(std::string host, std::string service,
   pointer self = shared_from_this();
 
   auto resolveHandler = [=] (const boost::system::error_code& error,
-                             tcp::resolver::iterator endpoints) {
+                             protocol::resolver::iterator endpoints) {
     if (!error) {
       auto connectHandler = [=] (const boost::system::error_code& error,
-                                 tcp::resolver::iterator selected_endpoint) {
+                                 protocol::resolver::iterator selected_endpoint) {
         if (!error) {
           _environment.postVMEvent([=] () {
             _environment.bindAndReleaseAsyncIOFeedbackNode(
-              statusNode, OzTCPConnection::build(_environment.vm, self));
+              statusNode, build(_environment.vm, self));
           });
         } else {
           _environment.postVMEvent([=] () {
@@ -74,68 +72,8 @@ void TCPConnection::startAsyncConnect(std::string host, std::string service,
     }
   };
 
-  tcp::resolver::query query(host, service);
+  protocol::resolver::query query(host, service);
   _resolver.async_resolve(query, resolveHandler);
-}
-
-void TCPConnection::startAsyncRead(const ProtectedNode& tailNode,
-                                   const ProtectedNode& statusNode) {
-  auto handler = [=] (const boost::system::error_code& error,
-                      size_t bytes_transferred) {
-    readHandler(error, bytes_transferred, tailNode, statusNode);
-  };
-
-  boost::asio::async_read(_socket, boost::asio::buffer(_readData), handler);
-}
-
-void TCPConnection::startAsyncReadSome(const ProtectedNode& tailNode,
-                                       const ProtectedNode& statusNode) {
-  auto handler = [=] (const boost::system::error_code& error,
-                      size_t bytes_transferred) {
-    readHandler(error, bytes_transferred, tailNode, statusNode);
-  };
-
-  _socket.async_read_some(boost::asio::buffer(_readData), handler);
-}
-
-void TCPConnection::startAsyncWrite(const ProtectedNode& statusNode) {
-  auto handler = [=] (const boost::system::error_code& error,
-                      size_t bytes_transferred) {
-    _environment.postVMEvent([=] () {
-      if (!error) {
-        _environment.bindAndReleaseAsyncIOFeedbackNode(
-          statusNode, bytes_transferred);
-      } else {
-        _environment.raiseAndReleaseAsyncIOFeedbackNode(
-          statusNode, MOZART_STR("socket"), MOZART_STR("write"), error.value());
-      }
-    });
-  };
-
-  boost::asio::async_write(_socket, boost::asio::buffer(_writeData), handler);
-}
-
-void TCPConnection::readHandler(const boost::system::error_code& error,
-                                size_t bytes_transferred,
-                                const ProtectedNode& tailNode,
-                                const ProtectedNode& statusNode) {
-  _environment.postVMEvent([=] () {
-    if (!error) {
-      VM vm = _environment.vm;
-
-      UnstableNode head(vm, *tailNode);
-      for (size_t i = bytes_transferred; i > 0; i--)
-        head = buildCons(vm, _readData[i-1], std::move(head));
-
-      _environment.bindAndReleaseAsyncIOFeedbackNode(
-        statusNode, MOZART_STR("succeeded"), bytes_transferred, std::move(head));
-    } else {
-      _environment.raiseAndReleaseAsyncIOFeedbackNode(
-        statusNode, MOZART_STR("socket"), MOZART_STR("read"), error.value());
-    }
-
-    _environment.releaseAsyncIONode(tailNode);
-  });
 }
 
 /////////////////
@@ -154,7 +92,7 @@ void TCPAcceptor::startAsyncAccept(const ProtectedNode& connectionNode) {
     if (!error) {
       _environment.postVMEvent([=] () {
         _environment.bindAndReleaseAsyncIOFeedbackNode(
-          connectionNode, OzTCPConnection::build(_environment.vm, connection));
+          connectionNode, build(_environment.vm, connection));
       });
     } else if (error == boost::asio::error::operation_aborted) {
       _environment.postVMEvent([=] () {

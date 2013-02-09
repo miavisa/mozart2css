@@ -31,20 +31,12 @@
 
 namespace mozart {
 
-class Boolean;
-
-typedef enum BOOL_OR_NOT_BOOL {
-  bFalse, bTrue, bNotBool
-} BoolOrNotBool;
-
 #ifndef MOZART_GENERATOR
 #include "Boolean-implem-decl.hh"
 #endif
 
 class Boolean: public DataType<Boolean>, public LiteralHelper<Boolean>,
-  Copyable, StoredAs<bool>, WithValueBehavior {
-public:
-  typedef SelfType<Boolean>::Self Self;
+  StoredAs<bool>, WithValueBehavior {
 public:
   constexpr static UUID uuid = "{ce34f46e-4751-4f2d-b6fd-0522198a4810}";
 
@@ -52,52 +44,38 @@ public:
     return vm->getAtom(MOZART_STR("name")); // compatibility with Mozart 1.4.0
   }
 
-  Boolean(bool value) : _value(value) {}
+  explicit Boolean(bool value) : _value(value) {}
 
   static void create(bool& self, VM, bool value) {
     self = value;
   }
 
   inline
-  static void create(bool& self, VM vm, GR gr, Self from);
+  static void create(bool& self, VM vm, GR gr, Boolean from);
 
 public:
   bool value() const { return _value; }
 
   inline
-  bool equals(VM vm, Self right);
+  bool equals(VM vm, RichNode right);
 
   inline
-  int compareFeatures(VM vm, Self right);
+  int compareFeatures(VM vm, RichNode right);
 
 public:
-  // BooleanValue interface
+  // NameLike interface
 
-  bool boolValue(Self self, VM vm) {
-    return value();
-  }
-
-  BoolOrNotBool valueOrNotBool(Self self, VM vm) {
-    return value() ? bTrue : bFalse;
-  }
-
-public:
-  // VirtualString inteface
-
-  bool isVirtualString(Self self, VM vm) {
+  bool isName(VM vm) {
     return true;
   }
-
-  inline
-  void toString(Self self, VM vm, std::basic_ostream<nchar>& sink);
-
-  inline
-  nativeint vsLength(Self self, VM vm);
 
 public:
   // Miscellaneous
 
-  void printReprToStream(Self self, VM vm, std::ostream& out, int depth) {
+  inline
+  UnstableNode serialize(VM vm, SE se);
+
+  void printReprToStream(VM vm, std::ostream& out, int depth, int width) {
     out << (value() ? "true" : "false");
   }
 

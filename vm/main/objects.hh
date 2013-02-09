@@ -37,8 +37,8 @@ namespace mozart {
 
 #include "Object-implem.hh"
 
-Object::Object(VM vm, size_t attrCount, StaticArray<UnstableNode> _attributes,
-               RichNode clazz, RichNode attrModel, RichNode featModel):
+Object::Object(VM vm, size_t attrCount, RichNode clazz,
+               RichNode attrModel, RichNode featModel):
   WithHome(vm) {
 
   using namespace patternmatching;
@@ -60,7 +60,7 @@ Object::Object(VM vm, size_t attrCount, StaticArray<UnstableNode> _attributes,
     _attrCount = attrCount;
 
     for (size_t i = 0; i < attrCount; i++) {
-      UnstableNode& attr = _attributes[i];
+      UnstableNode& attr = getElements(i);
 
       if (isFreeFlag(vm, *attrModelRec.getElement(i)))
         attr.init(vm, OptVar::build(vm));
@@ -94,18 +94,16 @@ Object::Object(VM vm, size_t attrCount, StaticArray<UnstableNode> _attributes,
   _GsInitialized = false;
 }
 
-Object::Object(VM vm, size_t attrCount, StaticArray<UnstableNode> _attributes,
-               GR gr, Self from):
-  WithHome(vm, gr, from->home()) {
+Object::Object(VM vm, size_t attrCount, GR gr, Object& from):
+  WithHome(vm, gr, from) {
 
-  gr->copyStableNode(_attrArity, from->_attrArity);
-  _attrCount = from->_attrCount;
+  gr->copyStableNode(_attrArity, from._attrArity);
+  _attrCount = from._attrCount;
 
-  gr->copyStableNode(_clazz, from->_clazz);
-  gr->copyStableNode(_features, from->_features);
+  gr->copyStableNode(_clazz, from._clazz);
+  gr->copyStableNode(_features, from._features);
 
-  for (size_t i = 0; i < attrCount; i++)
-    gr->copyUnstableNode(_attributes[i], from[i]);
+  gr->copyUnstableNodes(getElementsArray(), from.getElementsArray(), attrCount);
 
   _GsInitialized = false;
 }
@@ -115,44 +113,44 @@ bool Object::isFreeFlag(VM vm, RichNode value) {
     (value.as<UniqueName>().value() == vm->coreatoms.ooFreeFlag);
 }
 
-bool Object::lookupFeature(Self self, VM vm, RichNode feature,
+bool Object::lookupFeature(VM vm, RichNode feature,
                            nullable<UnstableNode&> value) {
   return Dottable(_features).lookupFeature(vm, feature, value);
 }
 
-bool Object::lookupFeature(Self self, VM vm, nativeint feature,
+bool Object::lookupFeature(VM vm, nativeint feature,
                            nullable<UnstableNode&> value) {
   return Dottable(_features).lookupFeature(vm, feature, value);
 }
 
-UnstableNode Object::getClass(Self self, VM vm) {
+UnstableNode Object::getClass(VM vm) {
   return { vm, _clazz };
 }
 
-UnstableNode Object::attrGet(Self self, VM vm, RichNode attribute) {
-  return { vm, self[getAttrOffset(self, vm, attribute)] };
+UnstableNode Object::attrGet(RichNode self, VM vm, RichNode attribute) {
+  return { vm, getElements(getAttrOffset(self, vm, attribute)) };
 }
 
-void Object::attrPut(Self self, VM vm, RichNode attribute, RichNode value) {
+void Object::attrPut(RichNode self, VM vm, RichNode attribute, RichNode value) {
   if (!isHomedInCurrentSpace(vm))
     return raise(vm, MOZART_STR("globalState"), MOZART_STR("object"));
 
-  self[getAttrOffset(self, vm, attribute)].copy(vm, value);
+  getElements(getAttrOffset(self, vm, attribute)).copy(vm, value);
 }
 
-UnstableNode Object::attrExchange(Self self, VM vm, RichNode attribute,
+UnstableNode Object::attrExchange(RichNode self, VM vm, RichNode attribute,
                                   RichNode newValue) {
   if (!isHomedInCurrentSpace(vm))
     raise(vm, MOZART_STR("globalState"), MOZART_STR("object"));
 
-  size_t offset = getAttrOffset(self, vm, attribute);
+  auto& element = getElements(getAttrOffset(self, vm, attribute));
 
-  UnstableNode oldValue = std::move(self[offset]);
-  self[offset].copy(vm, newValue);
+  UnstableNode oldValue = std::move(element);
+  element.copy(vm, newValue);
   return oldValue;
 }
 
-size_t Object::getAttrOffset(Self self, VM vm, RichNode attribute) {
+size_t Object::getAttrOffset(RichNode self, VM vm, RichNode attribute) {
   size_t result;
   if (RichNode(_attrArity).as<Arity>().lookupFeature(vm, attribute, result)) {
     return result;
@@ -161,12 +159,12 @@ size_t Object::getAttrOffset(Self self, VM vm, RichNode attribute) {
   }
 }
 
-size_t Object::procedureArity(Self self, VM vm) {
+size_t Object::procedureArity(RichNode self, VM vm) {
   return Interface<Callable>().procedureArity(self, vm);
 }
 
 void Object::getCallInfo(
-  Self self, VM vm, size_t& arity,
+  RichNode self, VM vm, size_t& arity,
   ProgramCounter& start, size_t& Xcount,
   StaticArray<StableNode>& Gs, StaticArray<StableNode>& Ks) {
 
@@ -177,7 +175,7 @@ void Object::getCallInfo(
     auto apply = mozart::build(vm, MOZART_STR("apply"));
     auto fallbackApply = Dottable(fallback).dot(vm, apply);
 
-    _Gs[0].init(vm, RichNode(self));
+    _Gs[0].init(vm, self);
     _Gs[1].init(vm, fallbackApply);
 
     _GsInitialized = true;
@@ -190,8 +188,7 @@ void Object::getCallInfo(
   Ks = nullptr;
 }
 
-void Object::getDebugInfo(Self self, VM vm,
-                          atom_t& printName, UnstableNode& debugData) {
+void Object::getDebugInfo(VM vm, atom_t& printName, UnstableNode& debugData) {
   printName = vm->getAtom(MOZART_STR("<Object>"));
   debugData = mozart::build(vm, unit);
 }

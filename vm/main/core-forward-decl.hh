@@ -35,14 +35,28 @@
 #include <cstdlib>
 #include <cstdint>
 #include <ostream>
+#include <functional>
+#include <memory>
+#include <cassert>
 
 #define MOZART_NORETURN __attribute__((noreturn))
 
 namespace mozart {
 
+namespace internal {
+  /**
+   * Utility function used to ensure that static_assert() is evaluated upon
+   * template instantiation, not before.
+   */
+  template <class T>
+  struct LateStaticAssert {
+    static const bool value = false;
+  };
+}
+
 typedef intptr_t nativeint;
-typedef char16_t nchar;
-#define MOZART_STR(S) u##S
+typedef char nchar;
+#define MOZART_STR(S) u8##S
 
 struct unit_t {
 };
@@ -97,10 +111,19 @@ bool operator!=(const basic_atom_t<atom_type>& lhs,
   return !lhs.equals(rhs);
 }
 
-template <class C, size_t atom_type>
-inline
+template <typename C, size_t atom_type>
+struct BasicAtomStreamer {
+  inline
+  static void print(std::basic_ostream<C>& out,
+                    const basic_atom_t<atom_type>& atom);
+};
+
+template <typename C, size_t atom_type>
 std::basic_ostream<C>& operator<<(std::basic_ostream<C>& out,
-                                  const basic_atom_t<atom_type>& atom);
+                                  const basic_atom_t<atom_type>& atom) {
+  BasicAtomStreamer<C, atom_type>::print(out, atom);
+  return out;
+}
 
 typedef basic_atom_t<1> atom_t;
 typedef basic_atom_t<2> unique_name_t;
@@ -122,6 +145,12 @@ typedef GarbageCollector* GC;
 
 class SpaceCloner;
 typedef SpaceCloner* SC;
+
+class SerializationCallback;
+typedef SerializationCallback* SE;
+
+template <typename T>
+class TypeInfoOf;
 
 class NodeDictionary;
 
@@ -150,6 +179,34 @@ public:
 private:
   Space* space;
 };
+
+typedef std::function<void(VM)> VMCleanupProc;
+
+/** Node of a linked list of things to do on cleanup
+ *  Cleanup is done after every GC and on VM termination
+ */
+struct VMCleanupListNode {
+  VMCleanupProc handler;
+  VMCleanupListNode* next;
+};
+
+namespace internal {
+  struct AlternativeToInt {
+    operator nativeint() { return 0; }
+  };
+
+  struct AlternativeToInt64 {
+    operator nativeint() { return 0; }
+  };
+
+  typedef typename std::conditional<
+    std::is_same<int, nativeint>::value,
+    AlternativeToInt, int>::type intIfDifferentFromNativeInt;
+
+  typedef typename std::conditional<
+    std::is_same<std::int64_t, nativeint>::value,
+    AlternativeToInt64, std::int64_t>::type int64IfDifferentFromNativeInt;
+}
 
 }
 

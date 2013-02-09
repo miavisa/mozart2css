@@ -33,8 +33,6 @@ namespace mozart {
 // PatMatCapture //
 ///////////////////
 
-class PatMatCapture;
-
 #ifndef MOZART_GENERATOR
 #include "PatMatCapture-implem-decl.hh"
 #endif
@@ -43,28 +41,29 @@ class PatMatCapture;
  * Placeholder for a capture in pattern matching
  */
 class PatMatCapture: public DataType<PatMatCapture>, StoredAs<nativeint>,
-  Copyable, WithValueBehavior {
+  WithValueBehavior {
 public:
-  typedef SelfType<PatMatCapture>::Self Self;
-public:
-  PatMatCapture(nativeint index) : _index(index) {}
+  explicit PatMatCapture(nativeint index) : _index(index) {}
 
   static void create(nativeint& self, VM, nativeint index) {
     self = index;
   }
 
   inline
-  static void create(nativeint& self, VM vm, GR gr, Self from);
+  static void create(nativeint& self, VM vm, GR gr, PatMatCapture from);
 
 public:
   nativeint index() const { return _index; }
 
   inline
-  bool equals(VM vm, Self right);
+  bool equals(VM vm, RichNode right);
 
 public:
   inline
-  void printReprToStream(Self self, VM vm, std::ostream& out, int depth);
+  void printReprToStream(VM vm, std::ostream& out, int depth, int width);
+
+  inline
+  UnstableNode serialize(VM vm, SE se);
 
 private:
   nativeint _index;
@@ -78,8 +77,6 @@ private:
 // PatMatConjunction //
 ///////////////////////
 
-class PatMatConjunction;
-
 #ifndef MOZART_GENERATOR
 #include "PatMatConjunction-implem-decl.hh"
 #endif
@@ -90,39 +87,35 @@ class PatMatConjunction;
 class PatMatConjunction: public DataType<PatMatConjunction>,
   StoredWithArrayOf<StableNode>, WithStructuralBehavior {
 public:
-  typedef SelfType<PatMatConjunction>::Self Self;
-public:
   inline
-  PatMatConjunction(VM vm, size_t width, StaticArray<StableNode> _elements);
+  PatMatConjunction(VM vm, size_t width);
 
   inline
-  PatMatConjunction(VM vm, size_t width, StaticArray<StableNode> _elements,
-                    GR gr, Self from);
+  PatMatConjunction(VM vm, size_t width, GR gr, PatMatConjunction& from);
+
+public:
+  // Requirement for StoredWithArrayOf
+  size_t getArraySizeImpl() {
+    return _count;
+  }
 
 public:
   size_t getCount() {
     return _count;
   }
 
-  size_t getArraySize() {
-    return _count;
-  }
+  inline
+  StableNode* getElement(size_t index);
 
   inline
-  StableNode* getElement(Self self, size_t index);
-
-  inline
-  bool equals(Self self, VM vm, Self right, WalkStack& stack);
-
-public:
-  // ArrayInitializer interface
-
-  inline
-  void initElement(Self self, VM vm, size_t index, RichNode value);
+  bool equals(VM vm, RichNode right, WalkStack& stack);
 
 public:
   inline
-  void printReprToStream(Self self, VM vm, std::ostream& out, int depth);
+  void printReprToStream(VM vm, std::ostream& out, int depth, int width);
+
+  inline
+  UnstableNode serialize(VM vm, SE se);
 
 private:
   size_t _count;
@@ -136,8 +129,6 @@ private:
 // PatMatOpenRecord //
 //////////////////////
 
-class PatMatOpenRecord;
-
 #ifndef MOZART_GENERATOR
 #include "PatMatOpenRecord-implem-decl.hh"
 #endif
@@ -149,23 +140,22 @@ class PatMatOpenRecord;
 class PatMatOpenRecord: public DataType<PatMatOpenRecord>,
   StoredWithArrayOf<StableNode> {
 public:
-  typedef SelfType<PatMatOpenRecord>::Self Self;
-public:
+  template <typename A>
   inline
-  PatMatOpenRecord(VM vm, size_t width, StaticArray<StableNode> _elements,
-                   RichNode arity);
+  PatMatOpenRecord(VM vm, size_t width, A&& arity);
 
   inline
-  PatMatOpenRecord(VM vm, size_t width, StaticArray<StableNode> _elements,
-                   GR gr, Self from);
+  PatMatOpenRecord(VM vm, size_t width, GR gr, PatMatOpenRecord& from);
 
 public:
-  size_t getArraySize() {
+  // Requirement for StoredWithArrayOf
+  size_t getArraySizeImpl() {
     return _width;
   }
 
+public:
   inline
-  StableNode* getElement(Self self, size_t index);
+  StableNode* getElement(size_t index);
 
 public:
   StableNode* getArity() {
@@ -173,14 +163,11 @@ public:
   }
 
 public:
-  // ArrayInitializer interface
+  inline
+  void printReprToStream(VM vm, std::ostream& out, int depth, int width);
 
   inline
-  void initElement(Self self, VM vm, size_t index, RichNode value);
-
-public:
-  inline
-  void printReprToStream(Self self, VM vm, std::ostream& out, int depth);
+  UnstableNode serialize(VM vm, SE se);
 
 private:
   StableNode _arity;

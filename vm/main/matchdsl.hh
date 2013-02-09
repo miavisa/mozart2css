@@ -31,6 +31,7 @@
 
 #include "coredatatypes-decl.hh"
 #include "coreinterfaces.hh"
+#include "utils-decl.hh"
 
 /**
  * DSL for writing pattern matching on Oz values in C++ code
@@ -54,7 +55,7 @@
  *   void doSomething(VM vm, RichNode value) {
  *     using namespace mozart::patternmatching;
  *
- *     UnstableNode X, Y;
+ *     RichNode X, Y;
  *
  *     if (matchesTuple(vm, value, vm->coreatoms.sharp,
  *                      capture(X), 42, capture(Y))) {
@@ -94,7 +95,7 @@
  *   void doSomething(VM vm, RichNode value) {
  *     using namespace mozart::patternmatching;
  *
- *     UnstableNode X, Y;
+ *     RichNode X, Y;
  *     nativeint intValue;
  *
  *     if (matchesSharp(vm, value, capture(X), 42, capture(Y))) {
@@ -135,16 +136,11 @@
  *   The value matches if it is equal to `node` (tested with mozart::equals()).
  * * wildcard().
  *   The value always matches.
- * * wildcard<T>() where T is a datatype of the Object Model.
- *   The value matches iff its actual type() is T::type().
- * * capture(X) where X is a declared UnstableNode.
+ * * capture(X) where X is a declared UnstableNode or RichNode.
  *   Like wildcard(), plus the value is copy()'ed into X.
- * * capture<T>(X) where T is a datatype, and X a declared UnstableNode.
- *   Like wildcard<T>(), plus the value is copy()'ed into X.
- * * capture(x) where x is a declared nativeint.
- *   Matches any SmallInt-like, plus its actual value is stored into x.
- * * capture(x) where x is a declared bool.
- *   Matches any Boolean-like, plus its actual value is stored into x.
+ * * capture(X) where X is a declared value of a C++ type T.
+ *   The value matches if it is the Oz pendant of a value of type T. The C++
+ *   value is captured in X.
  *
  * Upon a successful match, true is returned. Upon a failed match,
  * false is returned.
@@ -162,8 +158,27 @@ namespace patternmatching {
 /**
  * Metafunction from primitive type to the corresponding Oz type
  */
-template <class T>
+template <typename T>
 struct PrimitiveTypeToOzType {
+};
+
+/**
+ * Metafunction testing whether PrimitiveTypeToOzType is defined for T
+ */
+template <typename T>
+struct HasPrimitiveTypeToOzType {
+private:
+  template <typename W = T,
+            typename = typename PrimitiveTypeToOzType<W>::result>
+  static constexpr bool test(int) {
+    return true;
+  }
+
+  static constexpr bool test(...) {
+    return false;
+  }
+public:
+  static constexpr bool value = test(0);
 };
 
 template <>
@@ -196,66 +211,182 @@ struct PrimitiveTypeToOzType<Runnable*> {
   typedef ReifiedThread result;
 };
 
-template <class T>
+template <>
+struct PrimitiveTypeToOzType<GlobalNode*> {
+  typedef ReifiedGNode result;
+};
+
+template <typename T, typename Enable = void>
+struct OzValueToPrimitiveValue {
+  static_assert(mozart::internal::LateStaticAssert<T>::value,
+                "Invalid type for OzValueToPrimitiveValue");
+
+#ifdef IN_IDE_PARSER
+  inline static bool call(VM vm, RichNode value, T& primitive);
+#endif
+};
+
+template <typename T>
 inline
 bool ozValueToPrimitiveValue(VM vm, RichNode value, T& primitive) {
-  typedef typename PrimitiveTypeToOzType<T>::result OzType;
-
-  if (value.is<OzType>()) {
-    primitive = value.as<OzType>().value();
-    return true;
-  } else {
-    return false;
-  }
+  return OzValueToPrimitiveValue<T>::call(vm, value, primitive);
 }
 
-template <>
-inline
-bool ozValueToPrimitiveValue(VM vm, RichNode value, char& primitive) {
-  if (value.is<SmallInt>()) {
-    nativeint intValue = value.as<SmallInt>().value();
+template <typename T>
+struct OzValueToPrimitiveValue<T,
+  typename std::enable_if<HasPrimitiveTypeToOzType<T>::value>::type> {
 
-    if ((intValue >= 0) && (intValue < 256)) {
-      primitive = (char) intValue;
+  static bool call(VM vm, RichNode value, T& primitive) {
+    typedef typename PrimitiveTypeToOzType<T>::result OzType;
+
+    if (value.is<OzType>()) {
+      primitive = value.as<OzType>().value();
       return true;
     } else {
       return false;
     }
-  } else {
-    return false;
   }
-}
+};
+
+template <>
+struct OzValueToPrimitiveValue<mozart::internal::intIfDifferentFromNativeInt> {
+  static bool call(VM vm, RichNode value, int& primitive) {
+    if (value.is<SmallInt>()) {
+      nativeint intValue = value.as<SmallInt>().value();
+
+      if ((intValue >= std::numeric_limits<int>::min()) &&
+          (intValue <= std::numeric_limits<int>::max())) {
+        primitive = (int) intValue;
+        return true;
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
+};
+
+template <>
+struct OzValueToPrimitiveValue<size_t> {
+  static bool call(VM vm, RichNode value, size_t& primitive) {
+    if (value.is<SmallInt>()) {
+      nativeint intValue = value.as<SmallInt>().value();
+
+      if (intValue >= 0) {
+        primitive = (size_t) intValue;
+        return true;
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
+};
+
+template <>
+struct OzValueToPrimitiveValue<char> {
+  static bool call(VM vm, RichNode value, char& primitive) {
+    if (value.is<SmallInt>()) {
+      nativeint intValue = value.as<SmallInt>().value();
+
+      if ((intValue >= 0) && (intValue < 256)) {
+        primitive = (char) intValue;
+        return true;
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
+};
+
+template <>
+struct OzValueToPrimitiveValue<unsigned char> {
+  static bool call(VM vm, RichNode value, unsigned char& primitive) {
+    if (value.is<SmallInt>()) {
+      nativeint intValue = value.as<SmallInt>().value();
+
+      if ((intValue >= 0) && (intValue < 256)) {
+        primitive = (unsigned char) intValue;
+        return true;
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
+};
+
+template <>
+struct OzValueToPrimitiveValue<char32_t> {
+  static bool call(VM vm, RichNode value, char32_t& primitive) {
+    if (value.is<SmallInt>()) {
+      nativeint intValue = value.as<SmallInt>().value();
+
+      if (isValidCodePoint(intValue)) {
+        primitive = (char32_t) intValue;
+        return true;
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
+};
+
+template <>
+struct OzValueToPrimitiveValue<UUID> {
+  static bool call(VM vm, RichNode value, UUID& primitive) {
+    if (value.is<ByteString>()) {
+      // Fast path for a raw ByteString
+      auto& bytes = value.as<ByteString>().value();
+      if (bytes.length == (nativeint) UUID::byte_count) {
+        primitive = UUID(bytes.string);
+        return true;
+      } else {
+        return false;
+      }
+    } if (ozVBSLengthForBufferNoRaise(vm, value) == (nativeint) UUID::byte_count) {
+      std::vector<unsigned char> bytes;
+      ozVBSGet(vm, value, UUID::byte_count, bytes);
+      primitive = UUID(bytes.data());
+      return true;
+    } else {
+      return false;
+    }
+  }
+};
+
+template <class U>
+struct OzValueToPrimitiveValue<std::shared_ptr<U>,
+  typename std::enable_if<!HasPrimitiveTypeToOzType<std::shared_ptr<U>>::value>::type> {
+
+  static bool call(VM vm, RichNode value, std::shared_ptr<U>& primitive) {
+    if (value.is<ForeignPointer>() &&
+        value.as<ForeignPointer>().isPointer<U>()) {
+      primitive = value.as<ForeignPointer>().value<U>();
+      return true;
+    } else {
+      return false;
+    }
+  }
+};
 
 namespace internal {
 
-/**
- * Utility function used to ensure that static_assert() is evaluated upon
- * template instantiation, not before.
- */
-template <class T>
-struct LateStaticAssert {
-  static const bool value = false;
-};
-
-/** Marker to designate any type */
-struct AnyType {};
-
-/** Pattern that matches any value of type T */
-template <class T>
+/** Pattern that matches any value */
 struct WildcardPattern {
 };
 
-/** Pattern that matches any value of type T, and captures the value */
+/** Pattern that matches a value of the appropriate type given a C++ type */
 template <class T>
 struct CapturePattern {
-  CapturePattern(UnstableNode& node) : node(node) {}
-
-  UnstableNode& node;
-};
-
-template <class T>
-struct PrimitiveCapturePattern {
-  PrimitiveCapturePattern(T& value) : value(value) {}
+  explicit CapturePattern(T& value) : value(value) {}
 
   T& value;
 };
@@ -269,22 +400,26 @@ void waitForIfTransient(VM vm, RichNode value) {
     waitFor(vm, value);
 }
 
-/**
- * Internal equivalent of matches().
- * This function is meant to be specialized on types of pattern.
- */
-template <class T>
-inline
-bool matchesSimple(VM vm, RichNode value, T pattern) {
-  static_assert(internal::LateStaticAssert<T>::value,
+} // namespace internal
+
+/** Core match function, meant to be specialized on the pattern type */
+template <typename T, typename Enable = void>
+struct Matcher {
+  static_assert(mozart::internal::LateStaticAssert<T>::value,
                 "Invalid type of pattern");
-  return false;
-}
+
+#ifdef IN_IDE_PARSER
+  inline static bool matches(VM vm, RichNode value, T pattern);
+#endif
+};
+
+namespace internal {
 
 /** Base case of the below */
-template <size_t i, class T>
+template <size_t i>
 inline
-bool matchesElementsAgainstPatternList(VM vm, TypedRichNode<T> aggregate) {
+bool matchesElementsAgainstPatternList(VM vm,
+                                       StaticArray<StableNode> elements) {
   return true;
 }
 
@@ -294,192 +429,149 @@ bool matchesElementsAgainstPatternList(VM vm, TypedRichNode<T> aggregate) {
  *   forall j : i <= j < (i + sizeof...(patterns))
  * @param i   Starting index in the aggregate's elements
  */
-template <size_t i, class T, class U, class... Rest>
+template <size_t i, class IthPat, class... Rest>
 inline
 bool matchesElementsAgainstPatternList(
-  VM vm, TypedRichNode<T> aggregate,
-  U ithPattern, Rest... restPatterns) {
+  VM vm, StaticArray<StableNode> elements,
+  IthPat ithPattern, Rest... restPatterns) {
 
-  if (!matchesSimple(vm, *aggregate.getElement(i), ithPattern))
+  if (!Matcher<IthPat>::matches(vm, elements[i], ithPattern))
     return false;
 
-  return matchesElementsAgainstPatternList<i+1, T>(
-    vm, aggregate, restPatterns...);
-}
-
-// Here we begin the various specializations of matchesSimple<T>()
-
-template <>
-inline
-bool matchesSimple(VM vm, RichNode value, nativeint pattern) {
-  return IntegerValue(value).equalsInteger(vm, pattern);
-}
-
-template <>
-inline
-bool matchesSimple(VM vm, RichNode value, size_t pattern) {
-  return matchesSimple(vm, value, (nativeint) pattern);
-}
-
-template <>
-inline
-bool matchesSimple(VM vm, RichNode value,
-                   ::mozart::internal::intIfDifferentFromNativeInt pattern) {
-  return matchesSimple(vm, value, (nativeint) pattern);
-}
-
-template <>
-inline
-bool matchesSimple(VM vm, RichNode value, bool pattern) {
-  return BooleanValue(value).valueOrNotBool(vm) == (pattern ? bTrue : bFalse);
-}
-
-template <>
-inline
-bool matchesSimple(VM vm, RichNode value, unit_t pattern) {
-  if (value.is<Unit>()) {
-    return true;
-  } else {
-    internal::waitForIfTransient(vm, value);
-    return false;
-  }
-}
-
-template <>
-inline
-bool matchesSimple(VM vm, RichNode value, const nchar* pattern) {
-  if (!value.is<Atom>()) {
-    internal::waitForIfTransient(vm, value);
-    return false;
-  }
-
-  size_t length = value.as<Atom>().value().length();
-  const nchar* valueContents = value.as<Atom>().value().contents();
-
-  return std::char_traits<nchar>::compare(
-    valueContents, pattern, length) == 0;
-}
-
-template <>
-inline
-bool matchesSimple(VM vm, RichNode value, atom_t pattern) {
-  if (!value.is<Atom>()) {
-    internal::waitForIfTransient(vm, value);
-    return false;
-  }
-
-  return value.as<Atom>().value() == pattern;
-}
-
-template <>
-inline
-bool matchesSimple(VM vm, RichNode value, unique_name_t pattern) {
-  if (!value.is<UniqueName>()) {
-    internal::waitForIfTransient(vm, value);
-    return false;
-  }
-
-  return value.as<UniqueName>().value() == pattern;
-}
-
-template <>
-inline
-bool matchesSimple(VM vm, RichNode value, RichNode pattern) {
-  return equals(vm, value, pattern);
-}
-
-template <class T>
-inline
-bool matchesSimple(VM vm, RichNode value, WildcardPattern<T> pattern) {
-  if (value.is<T>()) {
-    return true;
-  } else {
-    internal::waitForIfTransient(vm, value);
-    return false;
-  }
-}
-
-template <>
-inline
-bool matchesSimple(VM vm, RichNode value, WildcardPattern<AnyType> pattern) {
-  return true;
-}
-
-template <class T>
-inline
-bool matchesSimple(VM vm, RichNode value, CapturePattern<T> pattern) {
-  if (value.is<T>()) {
-    pattern.node.copy(vm, value);
-    return true;
-  } else {
-    internal::waitForIfTransient(vm, value);
-    return false;
-  }
-}
-
-template <>
-inline
-bool matchesSimple(VM vm, RichNode value, CapturePattern<AnyType> pattern) {
-  pattern.node.copy(vm, value);
-  return true;
-}
-
-template <class T>
-inline
-bool matchesSimple(VM vm, RichNode value, PrimitiveCapturePattern<T> pattern) {
-  if (ozValueToPrimitiveValue<T>(vm, value, pattern.value)) {
-    return true;
-  } else {
-    waitForIfTransient(vm, value);
-    return false;
-  }
-}
-
-template <>
-inline
-bool matchesSimple(VM vm, RichNode value,
-                   PrimitiveCapturePattern<UnstableNode> pattern) {
-  pattern.value.copy(vm, value);
-  return true;
+  return matchesElementsAgainstPatternList<i+1>(vm, elements, restPatterns...);
 }
 
 } // namespace internal
+
+// Here we begin the various specializations of Matcher<T>
+
+template <typename T>
+struct Matcher<T, typename std::enable_if<HasPrimitiveTypeToOzType<T>::value>::type> {
+  static bool matches(VM vm, RichNode value, T pattern) {
+    typedef typename PrimitiveTypeToOzType<T>::result OzType;
+
+    if (value.is<OzType>()) {
+      return value.as<OzType>().value() == pattern;
+    } else {
+      internal::waitForIfTransient(vm, value);
+      return false;
+    }
+  }
+};
+
+template <>
+struct Matcher<size_t> {
+  static bool matches(VM vm, RichNode value, size_t pattern) {
+    return Matcher<nativeint>::matches(vm, value, (nativeint) pattern);
+  }
+};
+
+template <>
+struct Matcher<mozart::internal::intIfDifferentFromNativeInt> {
+  static bool matches(VM vm, RichNode value, int pattern) {
+    return Matcher<nativeint>::matches(vm, value, (nativeint) pattern);
+  }
+};
+
+template <>
+struct Matcher<unit_t> {
+  static bool matches(VM vm, RichNode value, unit_t pattern) {
+    if (value.is<Unit>()) {
+      return true;
+    } else {
+      internal::waitForIfTransient(vm, value);
+      return false;
+    }
+  }
+};
+
+template <>
+struct Matcher<const nchar*> {
+  static bool matches(VM vm, RichNode value, const nchar* pattern) {
+    if (value.is<Atom>()) {
+      size_t length = value.as<Atom>().value().length();
+      const nchar* valueContents = value.as<Atom>().value().contents();
+
+      return std::char_traits<nchar>::compare(
+        valueContents, pattern, length) == 0;
+    } else {
+      internal::waitForIfTransient(vm, value);
+      return false;
+    }
+  }
+};
+
+template <>
+struct Matcher<RichNode> {
+  static bool matches(VM vm, RichNode value, RichNode pattern) {
+    return equals(vm, value, pattern);
+  }
+};
+
+template <>
+struct Matcher<internal::WildcardPattern> {
+  static bool matches(VM vm, RichNode value,
+                      internal::WildcardPattern pattern) {
+    return true;
+  }
+};
+
+template <>
+struct Matcher<internal::CapturePattern<UnstableNode>> {
+  static bool matches(VM vm, RichNode value,
+                      internal::CapturePattern<UnstableNode> pattern) {
+    pattern.value.copy(vm, value);
+    return true;
+  }
+};
+
+template <>
+struct Matcher<internal::CapturePattern<RichNode>> {
+  static bool matches(VM vm, RichNode value,
+                      internal::CapturePattern<RichNode> pattern) {
+    value.ensureStable(vm);
+    pattern.value = value;
+    return true;
+  }
+};
+
+template <typename T>
+struct Matcher<internal::CapturePattern<T>> {
+  static bool matches(VM vm, RichNode value,
+                      internal::CapturePattern<T> pattern) {
+    if (ozValueToPrimitiveValue<T>(vm, value, pattern.value)) {
+      return true;
+    } else {
+      internal::waitForIfTransient(vm, value);
+      return false;
+    }
+  }
+};
 
 //////////////////////////
 // The public interface //
 //////////////////////////
 
 /**
- * Build a (typed) wildcard pattern
+ * Build a wildcard pattern
  * wildcard() matches any value
- * wildcard<T>() matches any value of type T
  */
-template <class T = internal::AnyType>
 inline
-internal::WildcardPattern<T> wildcard() {
-  return internal::WildcardPattern<T>();
+internal::WildcardPattern wildcard() {
+  return internal::WildcardPattern();
 }
 
 /**
- * Build a (typed) capture pattern
- * capture(node) matches any value and captures it in `node`
- * capture<T>(node) matches any value of type T and captures it in `node`
- */
-template <class T = internal::AnyType>
-inline
-internal::CapturePattern<T> capture(UnstableNode& node) {
-  return internal::CapturePattern<T>(node);
-}
-
-/**
- * Build a typed primitive capture pattern
+ * Build a capture pattern
  * capture(value) matches any value of an Oz type corresponding to the C++
  *   type of `value`, and captures its value in `value`
+ * The type T can also be RichNode or UnstableNode, in which case any value
+ * (including transients) will be matched and captured.
  */
 template <class T>
 inline
-internal::PrimitiveCapturePattern<T> capture(T& value) {
-  return internal::PrimitiveCapturePattern<T>(value);
+internal::CapturePattern<T> capture(T& value) {
+  return internal::CapturePattern<T>(value);
 }
 
 /**
@@ -489,7 +581,7 @@ internal::PrimitiveCapturePattern<T> capture(T& value) {
 template <class T>
 inline
 bool matches(VM vm, RichNode value, T pattern) {
-  return internal::matchesSimple(vm, value, pattern);
+  return Matcher<T>::matches(vm, value, pattern);
 }
 
 /**
@@ -509,11 +601,11 @@ bool matchesTuple(VM vm, RichNode value, LT labelPat, Args... fieldsPats) {
   if (tuple.getWidth() != sizeof...(Args))
     return false;
 
-  if (!internal::matchesSimple(vm, *tuple.getLabel(), labelPat))
+  if (!matches(vm, *tuple.getLabel(), labelPat))
     return false;
 
   return internal::matchesElementsAgainstPatternList<0>(
-    vm, tuple, fieldsPats...);
+    vm, tuple.getElementsArray(), fieldsPats...);
 }
 
 /**
@@ -530,8 +622,8 @@ bool matchesCons(VM vm, RichNode value, HT head, TT tail) {
 
   auto cons = value.as<Cons>();
 
-  return internal::matchesSimple(vm, *cons.getHead(), head) &&
-    internal::matchesSimple(vm, *cons.getTail(), tail);
+  return matches(vm, *cons.getHead(), head) &&
+    matches(vm, *cons.getTail(), tail);
 }
 
 /**
@@ -548,23 +640,45 @@ bool matchesSharp(VM vm, RichNode value, Args... fieldsPats) {
  * Pattern matching for variadic tuples
  * See comments at the beginning of the file for usage.
  */
+template <class LT>
+inline
+bool matchesVariadicTuple(VM vm, RichNode value,
+                          size_t& argc, StaticArray<StableNode>& args,
+                          LT labelPat) {
+  if (value.type() != Tuple::type()) {
+    // A value that matches the label pattern is a tuple with 0 elements
+    argc = 0;
+    args = nullptr;
+    return matches(vm, value, labelPat);
+  }
+
+  // Actual matching
+  auto tuple = value.as<Tuple>();
+
+  if (!matches(vm, *tuple.getLabel(), labelPat))
+    return false;
+
+  // Fill the captured variadic arguments
+  argc = tuple.getWidth();
+  args = tuple.getElementsArray();
+
+  return true;
+}
+
+/**
+ * Pattern matching for variadic tuples with fixed fields at the beginning
+ * See comments at the beginning of the file for usage.
+ */
 template <class LT, class... Args>
 inline
 bool matchesVariadicTuple(VM vm, RichNode value,
                           size_t& argc, StaticArray<StableNode>& args,
                           LT labelPat, Args... fieldsPats) {
   constexpr size_t fixedArgc = sizeof...(Args);
+  static_assert(fixedArgc > 0,
+                "The overload above should have been selected instead.");
 
   if (value.type() != Tuple::type()) {
-    if (fixedArgc == 0) {
-      // If we expect 0 fixed arguments, then an atom is a valid input
-      if (internal::matchesSimple(vm, value, labelPat)) {
-        argc = 0;
-        args = nullptr;
-        return true;
-      }
-    }
-
     internal::waitForIfTransient(vm, value);
     return false;
   }
@@ -575,11 +689,11 @@ bool matchesVariadicTuple(VM vm, RichNode value,
   if (tuple.getWidth() < fixedArgc)
     return false;
 
-  if (!internal::matchesSimple(vm, *tuple.getLabel(), labelPat))
+  if (!matches(vm, *tuple.getLabel(), labelPat))
     return false;
 
   if (!internal::matchesElementsAgainstPatternList<0>(
-      vm, tuple, fieldsPats...))
+      vm, tuple.getElementsArray(), fieldsPats...))
     return false;
 
   // Fill the captured variadic arguments

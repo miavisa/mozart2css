@@ -37,23 +37,19 @@ namespace mozart {
 
 #include "Unit-implem.hh"
 
-void Unit::create(unit_t& self, VM vm, GR gr, Self from) {
+void Unit::create(unit_t& self, VM vm, GR gr, Unit from) {
 }
 
-bool Unit::equals(VM vm, Self right) {
+bool Unit::equals(VM vm, RichNode right) {
   return true;
 }
 
-int Unit::compareFeatures(VM vm, Self right) {
+int Unit::compareFeatures(VM vm, RichNode right) {
   return 0;
 }
 
-void Unit::toString(Self self, VM vm, std::basic_ostream<nchar>& sink) {
-  sink << MOZART_STR("unit");
-}
-
-nativeint Unit::vsLength(Self self, VM vm) {
-  return 4;
+UnstableNode Unit::serialize(VM vm, SE se) {
+  return mozart::build(vm, MOZART_STR("unit"));
 }
 
 }
