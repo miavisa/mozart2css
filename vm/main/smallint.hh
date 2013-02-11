@@ -30,9 +30,9 @@
 #include <string>
 #include <limits>
 
-#ifdef VM_HAS_CSS
+//#ifdef VM_HAS_CSS
 #include <gecode/int.hh>
-#endif
+//#endif
 
 #ifndef MOZART_GENERATOR
 
@@ -190,7 +190,7 @@ UnstableNode SmallInt::modValue(VM vm, nativeint b) {
   }
 }
 
-#ifdef VM_HAS_CSS
+  //#ifdef VM_HAS_CSS
 // ConstraintVar ------------------------------------------------------------
 bool SmallInt::assigned(VM vm) {
   if(!isIntVarLike(vm))
@@ -202,6 +202,11 @@ bool SmallInt::isIntVarLike(VM vm) {
   return (Gecode::Int::Limits::min <= value()) &&
          (value() <= Gecode::Int::Limits::max); 
 }
+
+  Gecode::IntVar& SmallInt::intVar(RichNode self, VM vm) {
+    CstIntVar x(vm,self,self);
+    return x.getVar();
+  }
 
 UnstableNode SmallInt::min(VM vm) {
   if(!isIntVarLike(vm))
@@ -228,52 +233,9 @@ UnstableNode SmallInt::isIn(VM vm, RichNode right) {
   return r == value() ? 
          Boolean::build(vm,true) : Boolean::build(vm,false);
 }
-#endif
+  //#endif
 
-// IntVarLike ------------------------------------------------------------------
-
-bool SmallInt::isIntVarLike(Self self, VM vm) {
-  return CstIntVar::validAsElement(value());
-}
-
-Gecode::IntVar& SmallInt::intVar(Self self, VM vm) {
-  CstIntVar x(vm,self,self);
-  return x.getVar();
-}
-
-UnstableNode SmallInt::min(Self self, VM vm) {
-  if(!CstIntVar::validAsElement(value()))
-    raiseTypeError(vm,MOZART_STR("IntVarLike"),self);
-  return SmallInt::build(vm,value());
-}
-
-UnstableNode SmallInt::max(Self self, VM vm) {
-  if(!CstIntVar::validAsElement(value()))
-    raiseTypeError(vm,MOZART_STR("IntVarLike"),self);
-  return SmallInt::build(vm,value());
-}
-
-UnstableNode SmallInt::value(Self self, VM vm) {
-  if(!CstIntVar::validAsElement(value()))
-    raiseTypeError(vm,MOZART_STR("IntVarLike"),self);
-  return SmallInt::build(vm,value());
-}
-
-UnstableNode SmallInt::isIn(Self self, VM vm, RichNode right) {
-  nativeint r = getArgument<nativeint>(vm, right, MOZART_STR("integer"));
-  if(!CstIntVar::validAsElement(r))
-    raiseTypeError(vm,MOZART_STR("IntVarLike"),self);
-  return r == value()?
-    Boolean::build(vm,true) : Boolean::build(vm,false);
-}
   
-// ConstraintVar ---------------------------------------------------------------
-bool SmallInt::assigned(Self self, VM vm) {
-  if(!CstIntVar::validAsElement(value()))
-    raiseTypeError(vm,MOZART_STR("ConstraintVar"),self);
-  return true;
-}
-
 }
 
 #endif // MOZART_GENERATOR

@@ -16,7 +16,7 @@ public:
   public:
     New(): Builtin("new") {}
 
-    void operator()(VM vm, In min, In max, Out result) {
+    static void call(VM vm, In min, In max, Out result) {
       result = CstIntVar::build(vm,min,max);
     }
   };
@@ -25,7 +25,7 @@ public:
   public:
     Is(): Builtin("is") {}
 
-    void operator()(VM vm, In var, Out result) {
+    static void call(VM vm, In var, Out result) {
       result = build(vm, IntVarLike(var).isIntVarLike(vm));
     }
   };
@@ -34,7 +34,7 @@ public:
   public:
     Min(): Builtin("min") {}
 
-    void operator()(VM vm, In var, Out result) {
+    static void call(VM vm, In var, Out result) {
       result = build(vm, IntVarLike(var).min(vm));
     }
   };
@@ -43,7 +43,7 @@ public:
   public:
     Max(): Builtin("max") {}
 
-    void operator()(VM vm, In var, Out result) {
+    static void call(VM vm, In var, Out result) {
       result = build(vm, IntVarLike(var).max(vm));
     }
   };
@@ -52,7 +52,7 @@ public:
   public:
     Value(): Builtin("value") {}
 
-    void operator()(VM vm, In var, Out result) {
+    static void call(VM vm, In var, Out result) {
       result = build(vm, IntVarLike(var).value(vm));
     }
   };
@@ -61,7 +61,7 @@ public:
   public:
     IsIn(): Builtin("isIn") {}
 
-    void operator()(VM vm, In var, In n, Out result) {
+    static void call(VM vm, In var, In n, Out result) {
       result = build(vm, IntVarLike(var).isIn(vm,n));
     }
   };

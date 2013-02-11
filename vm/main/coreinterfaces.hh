@@ -69,10 +69,10 @@ namespace mozart {
 #include "ChunkLike-interf.hh"
 #include "StringLike-interf.hh"
 
-#ifdef VM_HAS_CSS
+  //#ifdef VM_HAS_CSS
 #include "ConstraintVar-interf.hh"
 #include "IntVarLike-interf.hh"
-#endif
+//#endif
 
 //////////////
 // Callable //
@@ -130,7 +130,6 @@ void Interface<Callable>::getDebugInfo(RichNode self, VM vm,
 //////////////
 // Dottable //
 //////////////
->>>>>>> css
 
 struct Dottable: public BaseDottable {
   // Not supported by compilers yet

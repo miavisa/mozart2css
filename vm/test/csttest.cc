@@ -61,17 +61,3 @@ TEST_F(CstTest, IntVarLike) {
   EXPECT_RAISE(MOZART_STR("IntVarLike"),
                CstIntVar::build(vm,outNode,outNode));
 }
-
-TEST_F(CstTest, Creation) {
-  UnstableNode mn = SmallInt::build(vm,2);
-  UnstableNode mx = SmallInt::build(vm,10);
-  UnstableNode x = CstIntVar::build(vm,mn,mx);
-  EXPECT_TRUE(IntVarLike(x).isIntVarLike(vm));
-
-  UnstableNode minNode = IntVarLike(x).min(vm);
-  EXPECT_EQ_INT(2,minNode);
-
-  UnstableNode maxNode = IntVarLike(x).max(vm);
-  EXPECT_EQ_INT(10,maxNode);
-
-}

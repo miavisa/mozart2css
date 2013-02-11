@@ -1,5 +1,6 @@
 set(DEFAULT_GECODE_INSTALL_DIR "${ep_base}/Install/gecode")
 set(GECODE_INSTALL_DIR ${DEFAULT_GECODE_INSTALL_DIR} CACHE PATH
+  "Path to Gecode installation")
 
 set(GECODE_VERSION 3.7.3)
 

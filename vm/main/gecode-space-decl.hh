@@ -1,6 +1,6 @@
-#ifndef VM_HAS_CSS
-#error This file is only included with the CSS support
-#endif
+//#ifndef VM_HAS_CSS
+//#error This file is only included with the CSS support
+//#endif
 
 // temporal!!
 #include <iostream>

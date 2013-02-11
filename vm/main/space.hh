@@ -127,9 +127,9 @@ void Space::constructor(VM vm, bool isTopLevel, Space* parent) {
   threadCount = 0;
   cascadedRunnableThreadCount = 0;
 
-#ifdef VM_HAS_CSS
+  //#ifdef VM_HAS_CSS
   _cstSpace = nullptr;
-#endif
+  //#endif
 }
 
 Space::Space(GR gr, Space* from) {
@@ -195,9 +195,9 @@ Space::Space(GR gr, Space* from) {
   // constraint space initialization
   // TODO: in this constructor Should I create a clone of the constraint
   // space that is insidefrom?
-#ifdef VM_HAS_CSS
+  //#ifdef VM_HAS_CSS
   _cstSpace = nullptr;
-#endif
+  //#endif
 }
 
 // Status
@@ -607,27 +607,6 @@ void Space::createPropagateThreadOnceAndSuspendItOnVar(
     propagateThread->suspendOnVar(vm, variable);
   }
 }
-
-// Constraint subsystem
-GecodeSpace& Space::getCstSpace() {
-  // The gecode constraint space is created only when needed. That need is
-  // reflected by (for instance) the declaration of a constraint variable.
-  // This method returns the gecode space associated to the mozart space,
-  // creating a new on if needed.
-
-  // An important aspect here is that the gecode space uses external memmory.
-  // That is, memmory that is not managed by the mozart virtual machine. For
-  // that reason we have to handle the copy and clonning of gecode spaces in
-  // order to not cause memmory leaks. 
-  if (_cstSpace == nullptr)
-    _cstSpace = new GecodeSpace;
-  return *_cstSpace;
-}
-
-bool Space::hasConstraintSpace() {
-  return _cstSpace != nullptr;
-}
-
 }
 
 #endif // MOZART_GENERATOR

@@ -664,7 +664,7 @@ struct Interface<StringLike>:
   }
 };
 
-#ifdef VM_HAS_CSS
+  //#ifdef VM_HAS_CSS
 class ConstraintVar;
 template <>
 struct Interface<ConstraintVar>:
@@ -707,7 +707,7 @@ struct Interface<IntVarLike>:
   }    
 };
   
-#endif
+  //#endif
   
 }
 

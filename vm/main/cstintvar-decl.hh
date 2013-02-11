@@ -16,7 +16,7 @@ class CstIntVar: public WithHome,
   public Transient,
   public WithVariableBehavior<5> {
 public:
-  typedef SelfType<CstIntVar>::Self Self;
+  //typedef SelfType<CstIntVar>::Self Self;
 
   // TODO: uuid is missing
 
@@ -41,8 +41,9 @@ public:
   // CstIntVar(VM vm, SpaceRef home)
   //   : WithHome(home), _varIndex(0) {}
 
-  CstIntVar(VM vm, GR gr, Self from)
-    : WithHome(vm,gr,from->home()), _varIndex(from->_varIndex) {}
+  CstIntVar(VM vm, GR gr, CstIntVar from)
+    //    : WithHome(vm,gr,from->home()), _varIndex(from->_varIndex) {}
+    : WithHome(vm,gr,from), _varIndex(from._varIndex) {}
 
   inline
   static bool validAsElement(nativeint x);
@@ -53,34 +54,34 @@ public:
   }
 public:
   // IntVarLike interface
-  bool isIntVarLike(Self self, VM vm) {
+  bool isIntVarLike(RichNode self, VM vm) {
     return true;
   }
 
-  Gecode::IntVar& intVar(Self self, VM vm) {
+  Gecode::IntVar& intVar(RichNode self, VM vm) {
     return getVar();
   }
 
   inline
-  UnstableNode min(Self self, VM vm);
+  UnstableNode min(RichNode self, VM vm);
 
   inline
-  UnstableNode max(Self self, VM vm);
+  UnstableNode max(RichNode self, VM vm);
 
   inline
-  UnstableNode value(Self self, VM vm);
+  UnstableNode value(RichNode self, VM vm);
 
   inline
-  UnstableNode isIn(Self self, VM vm, RichNode right);
+  UnstableNode isIn(RichNode self, VM vm, RichNode right);
 public:
   // ConstraintVar interface
   inline
-  bool assigned(Self self, VM vm) {
+  bool assigned(RichNode self, VM vm) {
     return getVar().assigned();
   }
 public:
   // Miscellaneous
-  void printReprToStream(Self self, VM vm, std::ostream& out, int depth) {
+  void printReprToStream(RichNode self, VM vm, std::ostream& out, int depth, int width) {
     out << getVar();
   }
 private:
