@@ -668,7 +668,7 @@ struct Interface<StringLike>:
 class ConstraintVar;
 template <>
 struct Interface<ConstraintVar>:
-  ImplementedBy<SmallInt>,
+    ImplementedBy<SmallInt, CstIntVar>,
   NoAutoReflectiveCalls {
 
   bool assigned(RichNode self, VM vm) {
@@ -679,7 +679,7 @@ struct Interface<ConstraintVar>:
 class IntVarLike;
 template<>
 struct Interface<IntVarLike>:
-  ImplementedBy<SmallInt>,
+    ImplementedBy<SmallInt, CstIntVar>,
   NoAutoReflectiveCalls {
 
   bool isIntVarLike(RichNode self, VM vm) {

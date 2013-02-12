@@ -42,24 +42,24 @@ bool CstIntVar::validAsElement(nativeint x) {
 
 // IntVarLike ------------------------------------------------------------------
 
-UnstableNode CstIntVar::min(RichNode self, VM vm) {
+UnstableNode CstIntVar::min(VM vm) {
   return SmallInt::build(vm,getVar().min());
 }
 
-UnstableNode CstIntVar::max(RichNode self, VM vm) {
+UnstableNode CstIntVar::max(VM vm) {
   return SmallInt::build(vm,getVar().max());
 }
 
-UnstableNode CstIntVar::value(RichNode self, VM vm) {
-  if (!assigned(self,vm))
-    raiseTypeError(vm,MOZART_STR("IntVarLike"),self);
+UnstableNode CstIntVar::value(VM vm) {
+  //if (!assigned(self,vm))
+  //  raiseTypeError(vm,MOZART_STR("IntVarLike"),self);
   return SmallInt::build(vm,getVar().val());
 }
 
-UnstableNode CstIntVar::isIn(RichNode self, VM vm, RichNode right) {
+UnstableNode CstIntVar::isIn(VM vm, RichNode right) {
   nativeint r = getArgument<nativeint>(vm, right, MOZART_STR("integer"));
-  if(!CstIntVar::validAsElement(r))
-    raiseTypeError(vm,MOZART_STR("IntVarLike"),self);
+  //if(!CstIntVar::validAsElement(r))
+  //  raiseTypeError(vm,MOZART_STR("IntVarLike"),self);
   int e = (int)r;
   return getVar().in(e) ? 
     Boolean::build(vm,true) : Boolean::build(vm,false);

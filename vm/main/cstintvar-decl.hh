@@ -54,29 +54,29 @@ public:
   }
 public:
   // IntVarLike interface
-  bool isIntVarLike(RichNode self, VM vm) {
+  bool isIntVarLike(VM vm) {
     return true;
   }
 
-  Gecode::IntVar& intVar(RichNode self, VM vm) {
+  Gecode::IntVar& intVar(VM vm) {
     return getVar();
   }
 
   inline
-  UnstableNode min(RichNode self, VM vm);
+  UnstableNode min(VM vm);
 
   inline
-  UnstableNode max(RichNode self, VM vm);
+  UnstableNode max(VM vm);
 
   inline
-  UnstableNode value(RichNode self, VM vm);
+  UnstableNode value(VM vm);
 
   inline
-  UnstableNode isIn(RichNode self, VM vm, RichNode right);
+  UnstableNode isIn(VM vm, RichNode right);
 public:
   // ConstraintVar interface
   inline
-  bool assigned(RichNode self, VM vm) {
+  bool assigned(VM vm) {
     return getVar().assigned();
   }
 public:
