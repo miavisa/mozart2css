@@ -31,9 +31,9 @@
 #include "exceptions-decl.hh"
 #include "vmallocatedlist-decl.hh"
 
-//#ifdef VM_HAS_CSS
+#ifdef VM_HAS_CSS
 #include "gecode-space-decl.hh"
-//#endif
+#endif
 
 namespace mozart {
 
@@ -335,7 +335,7 @@ private:
     _mark = false;
   }
 
-  //#ifdef VM_HAS_CSS
+#ifdef VM_HAS_CSS
 public: 
     // The gecode constraint space is created only when needed. That need is
   // reflected by (for instance) the declaration of a constraint variable.
@@ -355,7 +355,7 @@ public:
   bool hasConstraintSpace() {
     return _cstSpace != nullptr;
   }
-  //#endif
+#endif
 
 // Fields
 
@@ -387,9 +387,9 @@ private:
   SpaceScript script;
 
   // Gecode space associated with this mozart space
-  //#ifdef VM_HAS_CSS
+#ifdef VM_HAS_CSS
   GecodeSpace* _cstSpace;
-  //#endif
+#endif
   /*
    * Maintaining a counter of threads
    * Invariants:

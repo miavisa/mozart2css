@@ -117,7 +117,7 @@ public:
   inline
   UnstableNode modValue(VM vm, nativeint b);
 
-  //#ifdef VM_HAS_CSS
+#ifdef VM_HAS_CSS
 public:
   // ConstraintVar interface
   inline
@@ -142,7 +142,7 @@ public:
   inline
   UnstableNode isIn(VM vm, RichNode right);
 
-  //#endif
+#endif
 public:
   // Miscellaneous
 

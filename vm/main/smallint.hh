@@ -30,9 +30,9 @@
 #include <string>
 #include <limits>
 
-//#ifdef VM_HAS_CSS
+#ifdef VM_HAS_CSS
 #include <gecode/int.hh>
-//#endif
+#endif
 
 #ifndef MOZART_GENERATOR
 
@@ -190,7 +190,7 @@ UnstableNode SmallInt::modValue(VM vm, nativeint b) {
   }
 }
 
-  //#ifdef VM_HAS_CSS
+#ifdef VM_HAS_CSS
 // ConstraintVar ------------------------------------------------------------
 bool SmallInt::assigned(VM vm) {
   if(!isIntVarLike(vm))
@@ -233,7 +233,7 @@ UnstableNode SmallInt::isIn(VM vm, RichNode right) {
   return r == value() ? 
          Boolean::build(vm,true) : Boolean::build(vm,false);
 }
-  //#endif
+#endif
 
   
 }
