@@ -2,8 +2,10 @@
 #define __MODPROP_H
 
 #include "../mozartcore.hh"
+#include <gecode/int.hh>
 
 namespace mozart {
+
 namespace builtins {
 
 // Notes:
@@ -40,18 +42,21 @@ public:
   public:
     Rel(): Builtin("rel") {}
 
-    void operator()(VM vm, In x0, In r, In x1, In icl) {
+    static void call(VM vm, In x0, In r, In x1, In icl) {
       assert(vm->getCurrentSpace()->hasConstraintSpace());
       GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
       Gecode::IntVar& vx0 = IntVarLike(x0).intVar(vm);
       Gecode::IntVar& vx1 = IntVarLike(x1).intVar(vm);
       Gecode::IntRelType rt = atomToRelType(vm,r);
       Gecode::rel(home,vx0,rt,vx1);
-      //auto consistency = getArgument<atom_t>(vm,icl,MOZART_STR("Atom"));
-
-      // Gecode::rel(home,vx0,)
+      // Gecode::IntVar t(home, 0, 9);
+      // Gecode::IntVar t2(home, 0, 9);
+      // Gecode::rel(home,t,Gecode::IRT_NQ,t2);
+  
     }
   };
+
+
 }; // class ModProp
 } // namespace builtins
 } // namespace mozart
