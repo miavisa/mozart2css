@@ -1,5 +1,5 @@
-#ifndef __MODPROP_H
-#define __MODPROP_H
+#ifndef __MODINTVARPROP_H
+#define __MODINTVARPROP_H
 
 #include "../mozartcore.hh"
 #include <gecode/int.hh>
@@ -12,9 +12,9 @@ namespace builtins {
 // - All the constraints are posted in vm->getCurrentSpace()
 //   TODO: can I assume that the current space is the same space each
 //   variable belongs to?
-class ModProp: public Module {
+class ModIntVarProp: public Module {
 public:
-  ModProp(): Module("Prop") {}
+  ModIntVarProp(): Module("IntVarProp") {}
 
   static Gecode::IntRelType atomToRelType(VM vm, In r) {
     atom_t a = getArgument<atom_t>(vm,r,MOZART_STR("Atom"));
@@ -45,10 +45,11 @@ public:
     static void call(VM vm, In x0, In r, In x1, In icl) {
       assert(vm->getCurrentSpace()->hasConstraintSpace());
       GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
-      Gecode::IntVar& vx0 = IntVarLike(x0).intVar(vm);
-      Gecode::IntVar& vx1 = IntVarLike(x1).intVar(vm);
+      //Gecode::IntVar& vx0 = IntVarLike(x0).intVar(vm);
+      //Gecode::IntVar& vx1 = IntVarLike(x1).intVar(vm);
       Gecode::IntRelType rt = atomToRelType(vm,r);
-      Gecode::rel(home,vx0,rt,vx1);
+      Gecode::rel(home,IntVarLike(x0).intVar(vm),rt,IntVarLike(x1).intVar(vm));
+      //Gecode::rel(home,vx0,rt,vx1);
       // Gecode::IntVar t(home, 0, 9);
       // Gecode::IntVar t2(home, 0, 9);
       // Gecode::rel(home,t,Gecode::IRT_NQ,t2);
