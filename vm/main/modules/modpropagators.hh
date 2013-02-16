@@ -45,15 +45,8 @@ public:
     static void call(VM vm, In x0, In r, In x1, In icl) {
       assert(vm->getCurrentSpace()->hasConstraintSpace());
       GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
-      //Gecode::IntVar& vx0 = IntVarLike(x0).intVar(vm);
-      //Gecode::IntVar& vx1 = IntVarLike(x1).intVar(vm);
       Gecode::IntRelType rt = atomToRelType(vm,r);
       Gecode::rel(home,IntVarLike(x0).intVar(vm),rt,IntVarLike(x1).intVar(vm));
-      //Gecode::rel(home,vx0,rt,vx1);
-      // Gecode::IntVar t(home, 0, 9);
-      // Gecode::IntVar t2(home, 0, 9);
-      // Gecode::rel(home,t,Gecode::IRT_NQ,t2);
-  
     }
   };
 
