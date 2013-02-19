@@ -24,6 +24,8 @@
 
 #include "mozart.hh"
 
+#include <fstream>
+
 namespace mozart {
 
 namespace {
@@ -34,7 +36,14 @@ namespace {
 
 class BootUnpickler {
 public:
-  BootUnpickler(VM vm, std::istream& input): vm(vm), input(input) {
+  BootUnpickler(VM vm, const std::string& url):
+    vm(vm), input(url, std::ios::binary) {
+
+    if (!input.good()) {
+      std::cerr << "panic: cannot open file in boot unpickler: "
+                << url << std::endl;
+      std::abort();
+    }
   }
 
   /** Top-level unpickle function */
@@ -186,11 +195,11 @@ private:
       },
       [this] () {
         size_t size = readSize();
-        input.ignore(size*2 + (4 + 4));
+        ignore(size*2 + (4 + 4));
         readString();
         readSize();
         size_t Kcount = readSize();
-        input.ignore(Kcount*4);
+        ignore(Kcount*4);
       }
     );
   }
@@ -229,9 +238,9 @@ private:
         return result;
       },
       [this] () {
-        input.ignore(4);
+        ignore(4);
         size_t Gcount = readSize();
-        input.ignore(Gcount*4);
+        ignore(Gcount*4);
       }
     );
   }
@@ -351,9 +360,18 @@ private:
     assert(!input.eof() && "reached eof too early");
   }
 
+  /** Ignore the `count` following bytes of the input */
+  void ignore(size_t count) {
+    /* We cannot use input.ignore() here because of a bug in the implementation
+     * of that function in libc++. */
+    std::vector<char> dummy;
+    dummy.resize(count);
+    read(dummy.data(), count);
+  }
+
 private:
   VM vm;
-  std::istream& input;
+  std::ifstream input;
   std::vector<UnstableNode> nodes;
 };
 
@@ -363,7 +381,7 @@ private:
 // Entry point //
 /////////////////
 
-UnstableNode bootUnpickle(VM vm, std::istream& input) {
+UnstableNode bootUnpickle(VM vm, const std::string& input) {
   BootUnpickler unpickler(vm, input);
   return unpickler.unpickle();
 }
