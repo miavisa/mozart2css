@@ -82,8 +82,8 @@ export
 %    sumD:           FdpDSum
 %    sumCD:          FdpDSumC
 
-%    %% Symbolic Propagators
-%    distinct:       FdpDistinct
+%%% Symbolic Propagators
+   distinct:       FdpDistinct
 %    distinct2:      FdpDistinct2
 %    distinctB:      FdpDistinctB
 %    distinctD:      FdpDistinctD
@@ -167,7 +167,12 @@ define
       end
    end
 
+   %%% Generic propagators
+   FdpDistinct = FDP.distinct
+   
 end
+
+
 
 % require
 %    CpSupport(vectorToType:   VectorToType
@@ -254,7 +259,6 @@ end
 %    FdpMinimum = FDP.min
 %    FdpMaximum = FDP.max
 
-%    FdpDistinct = FDP.distinct
 %    FdpDistinct2 = FDP.distinct2
 %    FdpDistinctD = FDP.distinctD
 %    FdpDistinctB = FDP.distinctB
