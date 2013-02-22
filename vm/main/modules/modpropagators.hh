@@ -91,6 +91,17 @@ public:
     }
   };
 
+  class Branch: public Builtin<Branch> {
+  public:
+    Branch(): Builtin("branch") {}
+    
+    static void call(VM vm, In x) {
+      assert(vm->getCurrentSpace()->hasConstraintSpace());
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      Gecode::branch(home,getIntVarArgs(vm,x),Gecode::INT_VAR_SIZE_MIN,Gecode::INT_VAL_MIN); 
+    }
+  };
+
 }; // class ModIntVarProp
 } // namespace builtins
 } // namespace mozart
