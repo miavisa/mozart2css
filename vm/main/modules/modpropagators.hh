@@ -132,7 +132,6 @@ public:
   class Branch: public Builtin<Branch> {
   public:
     Branch(): Builtin("branch") {}
-    
     static void call(VM vm, In x, In bvar, In bval) {
       assert(vm->getCurrentSpace()->hasConstraintSpace());
       GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
