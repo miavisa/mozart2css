@@ -711,6 +711,36 @@ struct Interface<IntVarLike>:
     raiseTypeError(vm, MOZART_STR("IntVarLike"), self);
   }    
 };
+
+class SetVarLike;
+template<>
+struct Interface<SetVarLike>:
+    ImplementedBy<CstSetVar>,
+  NoAutoReflectiveCalls {
+
+  bool isSetVarLike(RichNode self, VM vm) {
+    return false;
+  }
+
+  Gecode::SetVar& setVar(RichNode self, VM vm) {
+      raiseTypeError(vm, MOZART_STR("SetVarLike"), self);
+    }
+};
+
+class BoolVarLike;
+template<>
+struct Interface<BoolVarLike>:
+    ImplementedBy<CstBoolVar>,
+  NoAutoReflectiveCalls {
+
+  bool isBoolVarLike(RichNode self, VM vm) {
+    return false;
+  }
+
+  Gecode::BoolVar& boolVar(RichNode self, VM vm) {
+      raiseTypeError(vm, MOZART_STR("BoolVarLike"), self);
+    }
+};
   
 #endif
   
