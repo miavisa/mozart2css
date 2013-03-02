@@ -15,6 +15,7 @@ class GecodeSpace : public Gecode::Space {
 private:
   std::vector<Gecode::IntVar> _intVars;
   std::vector<Gecode::SetVar> _setVars;
+  std::vector<Gecode::BoolVar> _boolVars;
 public:
   GecodeSpace(void)
     : Gecode::Space() {
@@ -49,6 +50,19 @@ public:
     if (index >= _setVars.size())
       std::cerr << "Accessing setVar at invalid index" << std::endl;
     return _setVars[index];
+  }
+  size_t newSetVar() {
+    _setVars.push_back(Gecode::SetVar());
+    return _setVars.size() - 1;
+  }
+  Gecode::BoolVar& boolVar(size_t index) {
+    if (index >= _boolVars.size())
+      std::cerr << "Accessing setVar at invalid index" << std::endl;
+    return _boolVars[index];
+  }
+  size_t newBoolVar() {
+    _boolVars.push_back(Gecode::BoolVar());
+    return _boolVars.size() - 1;
   }
   void dumpSpaceInformation(void) const {
     std::cout << "Space information" 

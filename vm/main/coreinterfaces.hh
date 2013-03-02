@@ -72,6 +72,8 @@ namespace mozart {
 #ifdef VM_HAS_CSS
 #include "ConstraintVar-interf.hh"
 #include "IntVarLike-interf.hh"
+#include "SetVarLike-interf.hh"
+#include "BoolVarLike-interf.hh"
 #endif
 
 //////////////
