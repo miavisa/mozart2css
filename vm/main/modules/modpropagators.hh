@@ -86,7 +86,7 @@ public:
       width = x.as<Tuple>().getWidth();
       Gecode::IntVarArgs v(width);
       //std::cout << "Is tuple" << width << std::endl;
-      for(int i=0; i<width; i++){
+      for(unsigned int i=0; i<width; i++){
       	StableNode* t=x.as<Tuple>().getElement(i);
 	UnstableNode a = Reference::build(vm, t);
 	RichNode tt = a;
