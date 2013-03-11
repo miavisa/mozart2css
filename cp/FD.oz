@@ -1,28 +1,33 @@
-%%%
-%%% Authors:
-%%%   Joerg Wuertz (wuertz@dfki.de)
-%%%   Tobias Mueller (tmueller@ps.uni-sb.de)
-%%%   Christian Schulte <schulte@ps.uni-sb.de>
-%%%
-%%% Copyright:
-%%%   Joerg Wuertz, 1997
-%%%   Tobias Mueller, 1997, 1998
-%%%   Christian Schulte, 1997, 1998
-%%%
-%%% Last change:
-%%%   $Date$ by $Author$
-%%%   $Revision$
-%%%
-%%% This file is part of Mozart, an implementation
-%%% of Oz 3
-%%%    http://www.mozart-oz.org
-%%%
-%%% See the file "LICENSE" or
-%%%    http://www.mozart-oz.org/LICENSE.html
-%%% for information on usage and redistribution
-%%% of this file, and for a DISCLAIMER OF ALL
-%%% WARRANTIES.
-%%%
+%% Copyright © 2013, Université catholique de Louvain
+%% All rights reserved.
+%%
+%% Redistribution and use in source and binary forms, with or without
+%% modification, are permitted provided that the following conditions are met:
+%%
+%% *  Redistributions of source code must retain the above copyright notice,
+%%    this list of conditions and the following disclaimer.
+%% *  Redistributions in binary form must reproduce the above copyright notice,
+%%    this list of conditions and the following disclaimer in the documentation
+%%    and/or other materials provided with the distribution.
+%%
+%% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+%% AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+%% IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+%% ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+%% LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+%% CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+%% SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+%% INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+%% CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+%% ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+%% POSSIBILITY OF SUCH DAMAGE.
+
+%%
+%% Authors:
+%%   Andrés F. Barco <anfelbar@javerianacali.edu.co>
+%%   Alejandro Cardona <carealejo@gmail.com>
+%%
+
 
 
 functor
@@ -30,7 +35,9 @@ functor
 require
    FDB at 'x-oz://boot/IntVar'
    FDP at 'x-oz://boot/IntVarProp'
-
+   %Space(waitStable)
+   Error(registerFormatter)
+   %System(nbSusps)
 prepare
    
    FdRelType = '#'('=:':   'IRT_EQ'
@@ -48,8 +55,22 @@ prepare
    		    	size_max: 'INT_VAR_SIZE_MAX')   
 
    FdIntValBranch = '#'(val_min: 'INT_VAL_MIN'
-   		        val_max: 'INT_VAL_MAX')
+			val_max: 'INT_VAL_MAX')
 
+%% Old oz distribution strategies.   
+%    FddOptVarMap = map(naive:   0
+%                       size:    1
+%                       min:     2
+%                       max:     3
+%                       nbSusps: 4
+%                       width:   5)
+
+%    FddOptValMap = map(min:      0
+%                       mid:      1
+%                       max:      2
+%                       splitMin: 3
+%                       splitMax: 4)
+   
 export
 %%% Finite domains
    inf:             FdInf
@@ -61,16 +82,17 @@ export
 
 %%% Telling Domains
    int:            FdInt
-   
-   
+   dom:            FdDom
+   decl:           FdDecl   
+   list:           FdList
+   tuple:          FdTuple
+   record:         FdRecord
+   %    bool:           FdBool
+
 %%% Reflection
    reflect:        FdReflect
-%    bool:           FdBool
-%    dom:            FdDom
-%    decl:           FdDecl
-%    list:           FdList
-%    tuple:          FdTuple
-%    record:         FdRecord
+
+
 
 
 %%% Simple relation
@@ -141,12 +163,80 @@ export
 
 define
 
-   FdInt = FDB.new
+   %%
+   %% Telling Domains
+   %%
+   local
+      FdIntVar = FDB.new
+   in
+      proc {FdInt D1#D2 Var}
+	 {FdIntVar D1 D2 Var}
+      end
+   end
+   
+   local
+   %anfelbar: This function is copied from CpSupport.oz
+   %          I do not know whether that file is going to
+   %          be used in the future. If yes, we remove this
+   %          function from here and include the file.
+      fun {VectorToType V}
+	 if {IsList V}       then list
+	 elseif {IsTuple V}  then tuple
+	 elseif {IsRecord V} then record
+	 else
+	    {Exception.raiseError
+	     kernel(type VectorToType [V] vector 1
+		 'Vector as input argument expected.')} illegal
+	 end
+      end
+      proc {ListDom Xs Dom}
+	 case Xs of nil then skip
+	 [] X|Xr then {FdInt Dom X} {ListDom Xr Dom}
+	 end
+      end
+      
+      proc {TupleDom N T Dom}
+	 if N>0 then {FdInt Dom T.N} {TupleDom N-1 T Dom} end
+      end
+      
+      proc {RecordDom As R Dom}
+	 case As of nil then skip
+	 [] A|Ar then {FdInt Dom R.A} {RecordDom Ar R Dom}
+	 end
+      end
+   in
+      FdInf = FDB.inf
+      FdSup = FDB.sup
+      proc {FdDecl V}
+	 {FdInt {FdInf}#{FdSup} V}
+      end
+      fun {FdList N Dom}
+	 if N>0 then {FdInt Dom}|{FdList N-1 Dom}
+	 else nil
+	 end
+      end
+      
+      proc {FdTuple L N Dom ?T}
+	 T={MakeTuple L N} {TupleDom N T Dom}
+      end
+      
+      proc {FdRecord L As Dom ?R}
+	 R={MakeRecord L As} {RecordDom As R Dom}
+      end
+      
+      proc {FdDom Dom Vec}
+	 case {VectorToType Vec}
+	 of list   then {ListDom Vec Dom}
+	 [] tuple  then {TupleDom {Width Vec} Vec Dom}
+	 [] record then {RecordDom {Arity Vec} Vec Dom}
+	 end
+      end
+   end
+   
    FdIs = FDB.is
    FdIsIn = FDB.isIn
    FdValue = FDB.value
-   FdInf = FDB.inf
-   FdSup = FDB.sup
+   
 
    %local
    %   GetDomCompact = FDB.'reflect.dom'
@@ -166,8 +256,7 @@ define
 		      )
    %end
    
-   %%% Simple realtion over integer variables
-   %%% TODO: add 
+   %%% Simple relation over integer variables
    local
       RelProp = FDP.rel
    in
@@ -206,13 +295,6 @@ end
 
 
 % prepare
-%    FwdRelTable = fwdRelTable('=:':   false
-%                              '=<:':  true
-%                              '<:' :  true
-%                              '>=:':  false
-%                              '>:':   false
-%                              '\\=:': true)
-
 %    NegRelTable = negRelTable('=:':   '\\=:'
 %                              '=<:':  '>:'
 %                              '<:' :  '>=:'
@@ -220,29 +302,9 @@ end
 %                              '>:':   '=<:'
 %                              '\\=:': '=:')
 
-%    FddOptVarMap = map(naive:   0
-%                       size:    1
-%                       min:     2
-%                       max:     3
-%                       nbSusps: 4
-%                       width:   5)
-
-%    FddOptValMap = map(min:      0
-%                       mid:      1
-%                       max:      2
-%                       splitMin: 3
-%                       splitMax: 4)
-
-
 % import
 %    FDB at 'x-oz://boot/FDB'
 %    FDP at 'x-oz://boot/FDP'
-%    Space(waitStable)
-
-%    Error(registerFormatter)
-
-%    System(nbSusps)
-
 % define
 
 %    {Wait Space.waitStable}
@@ -299,57 +361,8 @@ end
 %    FdpSumCR = FDP.'reified.sumC'
 %    % FdpSumCNR = FDP.'reified.sumCN' not used in this functor
 
-%    %%
-%    %% Telling Domains
-%    %%
 
-%    local
-%       FdPutList = FDB.'int'
 
-%       proc {ListDom Xs Dom}
-%          case Xs of nil then skip
-%          [] X|Xr then {FdPutList Dom X} {ListDom Xr Dom}
-%          end
-%       end
-
-%       proc {TupleDom N T Dom}
-%          if N>0 then {FdPutList Dom T.N} {TupleDom N-1 T Dom} end
-%       end
-
-%       proc {RecordDom As R Dom}
-%          case As of nil then skip
-%          [] A|Ar then {FdPutList Dom R.A} {RecordDom Ar R Dom}
-%          end
-%       end
-%    in
-%       FdSup = {FDB.getLimits _}
-
-%       FdInt  = FdPutList
-%       FdBool = FDB.'bool'
-%       FdDecl = FDB.'decl'
-
-%       proc {FdDom Dom Vec}
-%          case {VectorToType Vec}
-%          of list   then {ListDom Vec Dom}
-%          [] tuple  then {TupleDom {Width Vec} Vec Dom}
-%          [] record then {RecordDom {Arity Vec} Vec Dom}
-%          end
-%       end
-
-%       fun {FdList N Dom}
-%          if N>0 then {FdPutList Dom}|{FdList N-1 Dom}
-%          else nil
-%          end
-%       end
-
-%       proc {FdTuple L N Dom ?T}
-%          T={MakeTuple L N} {TupleDom N T Dom}
-%       end
-
-%       proc {FdRecord L As Dom ?R}
-%          R={MakeRecord L As} {RecordDom As R Dom}
-%       end
-%    end
 
 %    FdIs = FDB.'is'
 
