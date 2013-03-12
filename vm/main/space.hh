@@ -196,7 +196,9 @@ Space::Space(GR gr, Space* from) {
   // TODO: in this constructor Should I create a clone of the constraint
   // space that is insidefrom?
 #ifdef VM_HAS_CSS
-  _cstSpace = nullptr;
+  if(from->hasConstraintSpace()){
+    _cstSpace = (GecodeSpace*) (from->getCstSpace()).copy(false);
+  }
 #endif
 }
 
