@@ -129,38 +129,7 @@ UnstableNode ReifiedSpace::askSpace(RichNode self, VM vm) {
     raise(vm, vm->coreatoms.spaceAdmissible, self);
 
   RichNode statusVar = *space->getStatusVar();
-
-// #ifdef VM_HAS_CSS
-//   UnstableNode r;//So we can create the tuple alternatives(N)
-//   int gecodeStatus=-1;
-//   if(space->hasConstraintSpace()){
-//     //Propagate the constraint space associated to this mozart space
-//     gecodeStatus = (space->getCstSpace()).propagate();
-    
-//     if (gecodeStatus == 0){//failed space return immediately.
-//       return Atom::build(vm, vm->coreatoms.failed);
-//     }
-    
-//     //if distributable space then create tuple alternatives(N)
-//     //if the mozart space is succeded, then return this tuple (distributable space is strongest than succeded space?).
-//     //if the mozart space is failed, then return failed (failed space is strongest than distributable space?)
-//     if (gecodeStatus == 2){
-//       UnstableNode newStatus = buildTuple(vm, vm->coreatoms.alternatives,
-//                                           8);
-//       //space->bindStatusVar(vm, newStatus);
-//       /*r = makeTuple(vm, MOZART_STR("alternatives"), 1);
-//       auto elements=RichNode(r).as<Tuple>().getElementsArray();
-//       for (size_t i=0; i< 1; ++i) {
-// 	elements[i].init(vm, 8);
-// 	}*/
-//     }
-//   }
-// #endif
   if (matchesTuple(vm, statusVar, vm->coreatoms.succeeded, wildcard())) {
-    /*#ifdef VM_HAS_CSS
-    if(gecodeStatus==2)
-      return r;
-      #endif*/
     return Atom::build(vm, vm->coreatoms.succeeded);
   } else {
     
@@ -221,9 +190,9 @@ void ReifiedSpace::commitSpace(RichNode self, VM vm, RichNode value) {
 #ifdef VM_HAS_CSS
   if(space->hasConstraintSpace()){
     if(space->getCstSpace().branchers()!=0){
-      unsigned int alt= getArgument<nativeint>(vm,value, MOZART_STR("integer"));
+      nativeint alt= getArgument<nativeint>(vm,value, MOZART_STR("integer"));
       std::cout << "making commit on gecodespace, value " << alt << std::endl;
-      space->getCstSpace().commit(*(space->getCstSpace().choice()), alt);
+      space->getCstSpace().commit(*(space->getCstSpace().choice()), (unsigned int)alt);
       return;
     }
   }

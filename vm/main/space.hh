@@ -495,8 +495,9 @@ void Space::checkStability() {
       //unsigned int bra= getCstSpace().branchers();
       //std::cout << "space branches " << bra << std::endl;
       UnstableNode newStatus = buildTuple(vm, vm->coreatoms.alternatives,
-                                          al);
+                                          (nativeint)al);
       bindStatusVar(vm, newStatus);
+      
       return;
       /*r = makeTuple(vm, MOZART_STR("alternatives"), 1);
       auto elements=RichNode(r).as<Tuple>().getElementsArray();
