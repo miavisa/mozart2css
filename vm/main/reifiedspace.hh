@@ -229,6 +229,21 @@ void ReifiedSpace::killSpace(RichNode self, VM vm) {
   space->kill(vm);
 }
 
+#ifdef VM_HAS_CSS
+  void ReifiedSpace::info(RichNode self, VM vm) {
+    Space* space = getSpace();
+
+    if (!space->isAdmissible(vm))
+      return raise(vm, vm->coreatoms.spaceAdmissible);
+
+    if(space->hasConstraintSpace()){
+      space->getCstSpace().dumpSpaceInformation();
+    }else{
+      std::cout << "This space has no constraint space..." << std::endl;
+    }
+  }
+#endif
+
 /////////////////
 // FailedSpace //
 /////////////////
@@ -262,6 +277,11 @@ void FailedSpace::killSpace(VM vm) {
   // nothing to do
 }
 
+#ifdef VM_HAS_CSS
+  void FailedSpace::info(VM vm) {
+    // nothing to do                                                                                                                                            
+  }
+#endif
 /////////////////
 // MergedSpace //
 /////////////////
@@ -295,6 +315,11 @@ void MergedSpace::killSpace(VM vm) {
   // nothing to do
 }
 
+#ifdef VM_HAS_CSS
+  void MergedSpace::info(VM vm) {
+    // nothing to do                                                                                                                                            
+  }
+#endif
 }
 
 #endif // MOZART_GENERATOR

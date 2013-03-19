@@ -79,6 +79,11 @@ public:
 
   inline
   void killSpace(RichNode self, VM vm);
+
+#ifdef VM_HAS_CSS
+  inline
+  void info(RichNode self, VM vm);
+#endif
 private:
   SpaceRef _space;
 };
@@ -131,6 +136,11 @@ public:
 
   inline
   void killSpace(VM vm);
+
+#ifdef VM_HAS_CSS
+  inline
+  void info(VM vm);
+#endif
 };
 
 #ifndef MOZART_GENERATOR
@@ -181,6 +191,11 @@ public:
 
   inline
   void killSpace(VM vm);
+
+#ifdef VM_HAS_CSS
+  inline
+  void info(VM vm);
+#endif
 };
 
 #ifndef MOZART_GENERATOR
