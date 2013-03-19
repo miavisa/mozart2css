@@ -42,7 +42,7 @@ export
    Commit
    Kill
    Choose
-
+   Info
 define
 
    New        = Boot_Space.new
@@ -54,5 +54,5 @@ define
    Commit     = Boot_Space.commit
    Kill       = Boot_Space.kill
    Choose     = Boot_Space.choose
-
+   Info       = Boot_Space.info
 end
