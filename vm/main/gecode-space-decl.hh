@@ -15,10 +15,10 @@ class GecodeSpace : public Gecode::Space {
 private:
   std::vector<Gecode::IntVar> _intVars;
   std::vector<Gecode::SetVar> _setVars;
-  
 public:
+  int id;//temporal: id for the gecodespace.
   GecodeSpace(void)
-    : Gecode::Space() {
+  : Gecode::Space(), id(1) {
     std::cout << "Constructed gecode space" << std::endl;
   }
   
@@ -36,12 +36,26 @@ public:
   virtual ~GecodeSpace(void) {
     std::cout << "Destructed gecode space" << std::endl;
   }
-
+  
+  void copyVars(GecodeSpace& other){
+    id=other.id+1;
+    //temporal: when copying this variables a runtime error (segmentation fault) is raised.
+    //_intVars = other._intVars;
+    //_setVars = other._setVars;
+    //_intVars(other._intVars);
+    //_setVars(other._setVars);
+    /*for(auto i = _intVars.size(); i--;)
+      _intVars[i].update(*this,false,other._intVars[i]);
+    for(auto i = _setVars.size(); i--;)
+    _setVars[i].update(*this,false,other._setVars[i]);*/
+  }
+  
   int propagate(void){
+    std::cout << "GecodeSpace: propagating... " <<  std::endl;
     return (int)(this->status());
   }
   
-  virtual Gecode::Space* copy(bool share) override {
+  virtual Gecode::Space* copy(bool share) {
     return new GecodeSpace(share,*this);
   }
   
@@ -67,6 +81,10 @@ public:
 	      << std::endl
 	      << "\tInteger variables: " << _intVars.size() << std::endl
 	      << "\tset variables: " << _setVars.size() << std::endl;
+    for(unsigned int i=0; i<_intVars.size(); ++i){
+      if(_intVars[i].size()==1)
+	std::cout << _intVars[i].val() << std::endl;
+    }
   }
 };
 }
