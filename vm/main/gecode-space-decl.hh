@@ -39,15 +39,12 @@ public:
   
   void copyVars(GecodeSpace& other){
     id=other.id+1;
-    //temporal: when copying this variables a runtime error (segmentation fault) is raised.
-    //_intVars = other._intVars;
-    //_setVars = other._setVars;
-    //_intVars(other._intVars);
-    //_setVars(other._setVars);
-    /*for(auto i = _intVars.size(); i--;)
-      _intVars[i].update(*this,false,other._intVars[i]);
-    for(auto i = _setVars.size(); i--;)
-    _setVars[i].update(*this,false,other._setVars[i]);*/
+    for(unsigned int i = 0; i< other._intVars.size(); i++){
+      _intVars.push_back(Gecode::IntVar(other._intVars[i]));
+      //_intVars[i].update(*this,true,other._intVars[i]);
+    }
+    //for(auto i = _setVars.size(); i--;)
+    //_setVars[i].update(*this,false,other._setVars[i]);
   }
   
   int propagate(void){
@@ -83,7 +80,7 @@ public:
 	      << "\tset variables: " << _setVars.size() << std::endl;
     for(unsigned int i=0; i<_intVars.size(); ++i){
       if(_intVars[i].size()==1)
-	std::cout << _intVars[i].val() << std::endl;
+	std::cout << "FD variable in pos " << i+1 << " is assigned to value " << _intVars[i].val() << std::endl;
     }
   }
 };
