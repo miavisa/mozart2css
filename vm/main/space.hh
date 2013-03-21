@@ -197,9 +197,9 @@ Space::Space(GR gr, Space* from) {
   // space that is insidefrom?
 #ifdef VM_HAS_CSS
   if(from->hasConstraintSpace()){
-    //_cstSpace = (GecodeSpace*) from->getCstSpace().copy(false);
+    assert(_cstSpace==nullptr);
     _cstSpace = (GecodeSpace*) from->getCstSpace().clone(false);
-    _cstSpace->copyVars(from->getCstSpace());
+    //_cstSpace->copyVars(from->getCstSpace());
   }else{
     _cstSpace = nullptr;
   }

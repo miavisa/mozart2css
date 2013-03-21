@@ -16,9 +16,8 @@ private:
   std::vector<Gecode::IntVar> _intVars;
   std::vector<Gecode::SetVar> _setVars;
 public:
-  int id;//temporal: id for the gecodespace.
   GecodeSpace(void)
-  : Gecode::Space(), id(1) {
+  : Gecode::Space(){
     std::cout << "Constructed gecode space" << std::endl;
   }
   
@@ -35,16 +34,6 @@ public:
 
   virtual ~GecodeSpace(void) {
     std::cout << "Destructed gecode space" << std::endl;
-  }
-  
-  void copyVars(GecodeSpace& other){
-    id=other.id+1;
-    for(unsigned int i = 0; i< other._intVars.size(); i++){
-      _intVars.push_back(Gecode::IntVar(other._intVars[i]));
-      //_intVars[i].update(*this,true,other._intVars[i]);
-    }
-    //for(auto i = _setVars.size(); i--;)
-    //_setVars[i].update(*this,false,other._setVars[i]);
   }
   
   int propagate(void){
