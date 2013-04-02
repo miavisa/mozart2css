@@ -37,8 +37,16 @@ public:
   }
   
   int propagate(void){
-    std::cout << "GecodeSpace: propagating... " <<  std::endl;
+    //std::cout << "GecodeSpace: propagating... " <<  std::endl;
     return (int)(this->status());
+  }
+  //This methods updates all the vars of *this* gecodeSpace with
+  //the information available in *other* gecodeSpace.
+  void reflectVars(GecodeSpace& other){
+    for(unsigned int i = 0; i<_intVars.size(); ++i)
+      _intVars[i].update(*this,false,other._intVars[i]);
+    /*for(auto i = _setVars.size(); i--;)
+      _setVars[i].update(*this,share,other._setVars[i]);*/
   }
   
   virtual Gecode::Space* copy(bool share) {

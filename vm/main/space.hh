@@ -281,6 +281,14 @@ bool Space::merge(VM vm, Space* dest) {
     if (src->cascadedRunnableThreadCount > 0)
       dest->cascadedRunnableThreadCount += src->cascadedRunnableThreadCount-1;
   }
+#ifdef VM_HAS_CSS
+  if(src->hasConstraintSpace()){
+    //anfelbar@: This is mandatory... I believe.
+    assert(dest->hasConstraintSpace());
+    //anfelbar@: Update all constraint vars of currentSpace.
+    dest->getCstSpace().reflectVars(src->getCstSpace());
+  }
+#endif
 
   // Merge constraints
   return src->installThis(/* isMerge = */ true);
