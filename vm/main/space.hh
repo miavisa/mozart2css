@@ -198,7 +198,11 @@ Space::Space(GR gr, Space* from) {
 #ifdef VM_HAS_CSS
   if(from->hasConstraintSpace()){
     assert(_cstSpace==nullptr);
-    _cstSpace = (GecodeSpace*) from->getCstSpace().clone(false);
+    if(!from->getCstSpace().failed()){
+      _cstSpace = (GecodeSpace*) from->getCstSpace().clone(false);
+    }else{
+      _cstSpace = nullptr;
+    }
     //_cstSpace->copyVars(from->getCstSpace());
   }else{
     _cstSpace = nullptr;
