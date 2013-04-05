@@ -262,6 +262,11 @@ void ReifiedSpace::killSpace(RichNode self, VM vm) {
   space->kill(vm);
 }
 
+void ReifiedSpace::injectSpace(RichNode self, VM vm, RichNode callable) {
+  Space* space = getSpace();
+  space->inject(vm, callable);
+}
+
 #ifdef VM_HAS_CSS
   void ReifiedSpace::info(RichNode self, VM vm) {
     Space* space = getSpace();
@@ -318,6 +323,10 @@ void FailedSpace::killSpace(VM vm) {
   // nothing to do
 }
 
+void FailedSpace::injectSpace(VM vm, RichNode callable) {
+  // nothing to do
+}
+
 #ifdef VM_HAS_CSS
   void FailedSpace::info(VM vm) {
     // nothing to do                                                                                                                                            
@@ -354,6 +363,10 @@ UnstableNode MergedSpace::cloneSpace(VM vm) {
 
 void MergedSpace::killSpace(VM vm) {
   // nothing to do
+}
+
+void MergedSpace::injectSpace(VM vm, RichNode callable) {
+  raise(vm, vm->coreatoms.spaceMerged);
 }
 
 #ifdef VM_HAS_CSS

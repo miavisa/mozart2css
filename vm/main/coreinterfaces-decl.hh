@@ -569,6 +569,10 @@ struct Interface<SpaceLike>:
     raiseTypeError(vm, MOZART_STR("Space"), self);
   }
 
+  void injectSpace(RichNode self, VM vm, RichNode callable) {
+    raiseTypeError(vm, MOZART_STR("Space"), self);
+  }
+
 #ifdef VM_HAS_CSS
   void info(RichNode self, VM vm) {
     raiseTypeError(vm, MOZART_STR("Space"), self);
