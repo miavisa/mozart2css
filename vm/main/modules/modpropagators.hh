@@ -85,7 +85,6 @@ public:
     if(x.is<Tuple>()){
       width = x.as<Tuple>().getWidth();
       Gecode::IntVarArgs v(width);
-      //std::cout << "Is tuple" << width << std::endl;
       for(unsigned int i=0; i<width; i++){
       	StableNode* t=x.as<Tuple>().getElement(i);
 	UnstableNode a = Reference::build(vm, t);
@@ -95,16 +94,64 @@ public:
       }
       return v;
     }else if(x.is<Cons>()){
-      std::cout << "Args is Cons" << std::endl;
-      Gecode::IntVarArgs v(1);
+      Gecode::IntVarArgs v;
+      StableNode* head=x.as<Cons>().getHead();
+      StableNode* tail=x.as<Cons>().getTail();
+      while (true){
+      	UnstableNode uhead = Reference::build(vm, head);
+      	RichNode rhead = uhead;
+      	assert(rhead.is<CstIntVar>());
+      	v << IntVarLike(rhead.as<CstIntVar>()).intVar(vm);
+	UnstableNode utail = Reference::build(vm, tail);
+      	RichNode rtail = utail;
+	if (!rtail.is<Cons>()){
+	  break;
+	}
+      	UnstableNode ncons = Reference::build(vm, tail);
+      	RichNode rncons = ncons;
+      	head=rncons.as<Cons>().getHead();
+	tail=rncons.as<Cons>().getTail();	
+      }
       return v;
     }else {
       std::cout << "Args is Record" << std::endl;
-      Gecode::IntVarArgs v(1);
+      width = x.as<Record>().getWidth();
+      Gecode::IntVarArgs v(width);
+      for(unsigned int i=0; i<width; i++){
+      	StableNode* t=x.as<Record>().getElement(i);
+      	UnstableNode a = Reference::build(vm, t);
+      	RichNode tt = a;
+      	assert(tt.is<CstIntVar>());
+      	v[i] = IntVarLike(tt.as<CstIntVar>()).intVar(vm);
+      }
       return v;
     }
   }
   
+  static Gecode::IntArgs getIntArgs(VM vm, In x){
+    std::vector<int> v;
+    StableNode* head=x.as<Cons>().getHead();
+    StableNode* tail=x.as<Cons>().getTail();
+    while (true){
+      UnstableNode uhead = Reference::build(vm, head);
+      RichNode rhead = uhead;
+      assert(rhead.is<SmallInt>());
+      nativeint val=rhead.as<SmallInt>().value();
+      v.push_back((int)(val)); 
+      UnstableNode utail = Reference::build(vm, tail);
+      RichNode rtail = utail;
+      if (!rtail.is<Cons>()){
+	break;
+      }
+      UnstableNode ncons = Reference::build(vm, tail);
+      RichNode rncons = ncons;
+      head=rncons.as<Cons>().getHead();
+      tail=rncons.as<Cons>().getTail();
+	
+    }
+    return Gecode::IntArgs(v);
+  }
+   
   class Rel: public Builtin<Rel> {
   public:
     Rel(): Builtin("rel") {}
@@ -125,7 +172,20 @@ public:
       assert(vm->getCurrentSpace()->hasConstraintSpace());
       GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
       Gecode::distinct(home,getIntVarArgs(vm,x));
-      //home.status(); //Call status in order to propagate; Debuging porpuses. 
+    }
+  };
+
+  class Linear: public Builtin<Linear> {
+  public:
+    Linear(): Builtin("linear") {}
+    
+    static void call(VM vm, In v, In x, In r, In c) {
+      assert(vm->getCurrentSpace()->hasConstraintSpace());
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      Gecode::IntRelType rt = atomToRelType(vm,r);
+      assert(c.is<SmallInt>());
+      nativeint val=c.as<SmallInt>().value();
+      Gecode::linear(home,getIntArgs(vm,v),getIntVarArgs(vm,x),rt,(int)(val));
     }
   };
 
