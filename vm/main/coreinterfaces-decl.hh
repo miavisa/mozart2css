@@ -748,6 +748,21 @@ struct Interface<BoolVarLike>:
       raiseTypeError(vm, MOZART_STR("BoolVarLike"), self);
     }
 };
+
+class ConstraintSpace;
+template<>
+struct Interface<ConstraintSpace>:
+  ImplementedBy<ReifiedSpace>,
+  NoAutoReflectiveCalls {
+
+  bool isConstraintSpace(RichNode self, VM vm) {
+    return false;
+  }
+
+  GecodeSpace& constraintSpace(RichNode self, VM vm) {
+    raiseTypeError(vm, MOZART_STR("ConstraintSpace"), self);
+  }
+};
   
 #endif
   

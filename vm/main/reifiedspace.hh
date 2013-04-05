@@ -275,6 +275,14 @@ void ReifiedSpace::killSpace(RichNode self, VM vm) {
       std::cout << "This space has no constraint space..." << std::endl;
     }
   }
+
+  bool ReifiedSpace::isConstraintSpace(RichNode self, VM vm) {
+    Space* space = getSpace();
+    if(space->hasConstraintSpace())
+      return true;
+    else
+      return false;
+  }
 #endif
 
 /////////////////

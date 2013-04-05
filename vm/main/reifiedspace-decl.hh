@@ -83,6 +83,13 @@ public:
 #ifdef VM_HAS_CSS
   inline
   void info(RichNode self, VM vm);
+
+  inline
+  bool isConstraintSpace(RichNode self, VM vm);
+
+  GecodeSpace& constraintSpace(RichNode self, VM vm) {
+    return _space->getCstSpace();
+  }
 #endif
 private:
   SpaceRef _space;
