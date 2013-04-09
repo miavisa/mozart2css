@@ -114,7 +114,6 @@ public:
       }
       return v;
     }else {
-      std::cout << "Args is Record" << std::endl;
       width = x.as<Record>().getWidth();
       Gecode::IntVarArgs v(width);
       for(unsigned int i=0; i<width; i++){
@@ -130,24 +129,50 @@ public:
   
   static Gecode::IntArgs getIntArgs(VM vm, In x){
     std::vector<int> v;
-    StableNode* head=x.as<Cons>().getHead();
-    StableNode* tail=x.as<Cons>().getTail();
-    while (true){
-      UnstableNode uhead = Reference::build(vm, head);
-      RichNode rhead = uhead;
-      assert(rhead.is<SmallInt>());
-      nativeint val=rhead.as<SmallInt>().value();
-      v.push_back((int)(val)); 
-      UnstableNode utail = Reference::build(vm, tail);
-      RichNode rtail = utail;
-      if (!rtail.is<Cons>()){
-	break;
+    size_t width;
+    if(x.is<Tuple>()){
+      width = x.as<Tuple>().getWidth();
+      for(unsigned int i=0; i<width; i++){
+      	StableNode* t=x.as<Tuple>().getElement(i);
+	UnstableNode a = Reference::build(vm, t);
+	RichNode tt = a;
+	assert(tt.is<SmallInt>());
+	nativeint val=tt.as<SmallInt>().value();
+	v.push_back((int)(val));
       }
-      UnstableNode ncons = Reference::build(vm, tail);
-      RichNode rncons = ncons;
-      head=rncons.as<Cons>().getHead();
-      tail=rncons.as<Cons>().getTail();
+    }else if(x.is<Cons>()){
+      StableNode* head=x.as<Cons>().getHead();
+      StableNode* tail=x.as<Cons>().getTail();
+      while (true){
+	UnstableNode uhead = Reference::build(vm, head);
+	RichNode rhead = uhead;
+	if(rhead.is<SmallInt>()){
+	  assert(rhead.is<SmallInt>());
+	  nativeint val=rhead.as<SmallInt>().value();
+	  v.push_back((int)(val));
+	} else 
+	  if(rhead.is<Tuple>()){
+	    size_t widtht = rhead.as<Tuple>().getWidth();
+	    for(unsigned int i=0; i<widtht; i++){
+	      StableNode* t=rhead.as<Tuple>().getElement(i);
+	      UnstableNode a = Reference::build(vm, t);
+	      RichNode tt = a;
+	      assert(tt.is<SmallInt>());
+	      nativeint val=tt.as<SmallInt>().value();
+	      v.push_back((int)(val));
+	    }
+	  }
+	UnstableNode utail = Reference::build(vm, tail);
+	RichNode rtail = utail;
+	if (!rtail.is<Cons>()){
+	  break;
+	}
+	UnstableNode ncons = Reference::build(vm, tail);
+	RichNode rncons = ncons;
+	head=rncons.as<Cons>().getHead();
+	tail=rncons.as<Cons>().getTail();
 	
+      }
     }
     return Gecode::IntArgs(v);
   }
@@ -172,6 +197,17 @@ public:
       assert(vm->getCurrentSpace()->hasConstraintSpace());
       GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
       Gecode::distinct(home,getIntVarArgs(vm,x));
+    }
+  };
+
+  class Distinct2: public Builtin<Distinct2> {
+  public:
+    Distinct2(): Builtin("distinct2") {}
+    
+    static void call(VM vm, In v, In x) {
+      assert(vm->getCurrentSpace()->hasConstraintSpace());
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      Gecode::distinct(home,getIntArgs(vm,v),getIntVarArgs(vm,x));
     }
   };
 
