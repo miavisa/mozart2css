@@ -198,7 +198,7 @@ Space::Space(GR gr, Space* from) {
 #ifdef VM_HAS_CSS
   if(from->hasConstraintSpace()){
     assert(_cstSpace==nullptr);
-    if(!from->getCstSpace().failed()){
+    if(!from->getCstSpace().failed() && from->getCstSpace().stable()){
       _cstSpace = (GecodeSpace*) from->getCstSpace().clone(false);
     }else{
       _cstSpace = nullptr;
@@ -268,6 +268,11 @@ void Space::fail(VM vm) {
   vm->setCurrentSpace(parent);
 
   bindStatusVar(vm, build(vm, vm->coreatoms.failed));
+#ifdef VM_HAS_CSS
+  if(hasConstraintSpace()){
+    getCstSpace().fail();
+  }
+#endif
 }
 
 bool Space::merge(VM vm, Space* dest) {

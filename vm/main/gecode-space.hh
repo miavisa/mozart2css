@@ -8,29 +8,40 @@
 
 namespace mozart {
   GecodeSpace::GecodeSpace(void)
-    : Gecode::Space(){
-    std::cout << "Constructed gecode space" << std::endl;
+    : Gecode::Space(), lastStatus(Gecode::SS_BRANCH){
+    //std::cout << "Constructed gecode space" << std::endl;
+    alive.push_back(this);
   }
   
 GecodeSpace::GecodeSpace(bool share, GecodeSpace& other) 
-  : Gecode::Space(share,other),
+  : Gecode::Space(share,other), lastStatus(Gecode::SS_BRANCH),
     _intVars(other._intVars),
     _setVars(other._setVars)
 {
+  //std::cout << "Constructed gecode space (clone)" << std::endl;
   for(auto i = _intVars.size(); i--;)
     _intVars[i].update(*this,share,other._intVars[i]);
   for(auto i = _setVars.size(); i--;)
     _setVars[i].update(*this,share,other._setVars[i]);
+  alive.push_back(this);
 }
 
+  //int GecodeSpace::x = 0;
+
 GecodeSpace::~GecodeSpace(void) {
-  std::cout << "Destructed gecode space" << std::endl;
+  //std::cout << "Destructed gecode space" << std::endl;
 }
   
 int GecodeSpace::propagate(void){
   //std::cout << "GecodeSpace: propagating... " <<  std::endl;
-  return (int)(this->status());
+  lastStatus= this->status();
+  return (int) lastStatus;
 }
+
+  void GecodeSpace::fail(){
+    Gecode::Space::fail();
+    lastStatus = Gecode::SS_FAILED;
+  }
 //This methods updates all the vars of *this* gecodeSpace with
 //the information available in *other* gecodeSpace.
 void GecodeSpace::reflectVars(GecodeSpace& other){
@@ -82,7 +93,19 @@ void GecodeSpace::dumpSpaceInformation(void) const {
     if(_intVars[i].size()==1)
       std::cout << "FD variable in pos " << i+1 << " is assigned to value " << _intVars[i].val() << std::endl;
   }
+  std::cout << "How many GecodeSpaces are alive: " << alive.size() << std::endl;
 }
+  void GecodeSpace::gCollect(void){
+    for (unsigned int i=0; i<alive.size(); i++){
+      if (alive[i]->lastStatus == Gecode::SS_FAILED  || alive[i]->lastStatus == Gecode::SS_SOLVED){
+	delete alive[i];
+	alive[i] = nullptr;
+	alive.erase(alive.begin()+i);
+	//std::cout << "Erased gecodespace pos " << i << std::endl;
+      }
+    }
+    std::cout << "After garbage collection there are " << alive.size() << " GecodeSpaces alive" << std::endl;
+  }
 }
 
 #endif

@@ -128,16 +128,16 @@ UnstableNode ReifiedSpace::askSpace(RichNode self, VM vm) {
   if (!space->isAdmissible(vm))
     raise(vm, vm->coreatoms.spaceAdmissible, self);
 
-#ifdef VM_HAS_CSS 
-    int gecodeStatus=-1;
-    if(space->hasConstraintSpace()){
-      //Propagate the constraint space associated to this mozart space
-      gecodeStatus = (space->getCstSpace()).propagate();
-      //if the mozart space is failed, then return failed (failed space is strongest than distributable space?)
-      if (gecodeStatus == 0){//failed space return immediately.
-	return Atom::build(vm, vm->coreatoms.failed);
-      }
+#ifdef VM_HAS_CSS
+  int gecodeStatus=-1;
+  if(space->hasConstraintSpace()){
+    //Propagate the constraint space associated to this mozart space
+    gecodeStatus = (space->getCstSpace()).propagate();
+    //if the mozart space is failed, then return failed (failed space is strongest than distributable space?)
+    if (gecodeStatus == 0){//failed space return immediately.
+      return Atom::build(vm, vm->coreatoms.failed);
     }
+  }
 
 #endif
   RichNode statusVar = *space->getStatusVar();

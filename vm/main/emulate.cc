@@ -90,6 +90,16 @@ void StackEntry::afterGR(VM vm, StableNode*& abs) {
   kregs = Ks;
 }
 
+///////////////////////
+// Constraint Spaces //
+///////////////////////
+
+//This should be initialized here. 
+//Otherwise mutiple-definitions error is raised at compiling time.
+#ifdef VM_HAS_CSS
+  std::vector<GecodeSpace*> GecodeSpace::alive;
+#endif
+
 /////////////////
 // ThreadStack //
 /////////////////

@@ -17,6 +17,8 @@
 namespace mozart {
 class GecodeSpace : public Gecode::Space {
 private:
+  static std::vector<GecodeSpace*> alive;
+  Gecode::SpaceStatus lastStatus;
   std::vector<Gecode::IntVar> _intVars;
   std::vector<Gecode::SetVar> _setVars;
   std::vector<Gecode::BoolVar> _boolVars;
@@ -29,6 +31,8 @@ public:
   virtual ~GecodeSpace(void);
   inline
   int propagate(void);
+  inline
+  void fail(void);
   //This methods updates all the vars of *this* gecodeSpace with
   //the information available in *other* gecodeSpace.
   inline
@@ -49,7 +53,9 @@ public:
   size_t newBoolVar();
   inline
   void dumpSpaceInformation(void) const;
-};
+  inline
+  static void gCollect(void);
+  };
 }
 
 #endif
