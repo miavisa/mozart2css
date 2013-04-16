@@ -16,13 +16,16 @@ namespace mozart {
 GecodeSpace::GecodeSpace(bool share, GecodeSpace& other) 
   : Gecode::Space(share,other), lastStatus(Gecode::SS_BRANCH),
     _intVars(other._intVars),
-    _setVars(other._setVars)
+    _setVars(other._setVars),
+    _boolVars(other._boolVars)
 {
   //std::cout << "Constructed gecode space (clone)" << std::endl;
   for(auto i = _intVars.size(); i--;)
     _intVars[i].update(*this,share,other._intVars[i]);
   for(auto i = _setVars.size(); i--;)
     _setVars[i].update(*this,share,other._setVars[i]);
+  for(auto i = _boolVars.size(); i--;)
+    _boolVars[i].update(*this,share,other._boolVars[i]);
   alive.push_back(this);
 }
 
@@ -47,8 +50,10 @@ int GecodeSpace::propagate(void){
 void GecodeSpace::reflectVars(GecodeSpace& other){
   for(unsigned int i = 0; i<_intVars.size(); ++i)
     _intVars[i].update(*this,false,other._intVars[i]);
-  /*for(auto i = _setVars.size(); i--;)
-    _setVars[i].update(*this,share,other._setVars[i]);*/
+  for(unsigned int i = 0; i<_setVars.size(); ++i)
+    _setVars[i].update(*this,false,other._setVars[i]);
+  for(unsigned int i = 0; i<_boolVars.size(); ++i)
+    _boolVars[i].update(*this,false,other._boolVars[i]);
 }
   
 Gecode::Space* GecodeSpace::copy(bool share) {
@@ -77,11 +82,11 @@ size_t GecodeSpace::newSetVar() {
 }
 Gecode::BoolVar& GecodeSpace::boolVar(size_t index) {
   if (index >= _boolVars.size())
-    std::cerr << "Accessing setVar at invalid index" << std::endl;
+    std::cerr << "Accessing boolVar at invalid index" << std::endl;
   return _boolVars[index];
 }
 size_t GecodeSpace::newBoolVar() {
-  _boolVars.push_back(Gecode::BoolVar());
+  _boolVars.push_back(Gecode::BoolVar(*this,0,1));
   return _boolVars.size() - 1;
 }
 void GecodeSpace::dumpSpaceInformation(void) const {

@@ -212,8 +212,8 @@ public:
 	  tail=rncons.as<Cons>().getTail();	
 	} 
       int pairs[v.size()/2][2];
-      int i=0;
-      int ii=0;
+      unsigned int i=0;
+      unsigned int ii=0;
       while (i<v.size()){
 	pairs[ii][0]= v[i];
 	pairs[ii][1]= v[i+1];

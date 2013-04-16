@@ -23,11 +23,6 @@ public:
   inline
   CstBoolVar(VM vm);
 
-  // TODO: Ask Sebastien about this constructor. The docs says that is needed
-  // if yes, what is its semantics?
-  // CstBoolVar(VM vm, SpaceRef home)
-  //   : WithHome(home), _varIndex(0) {}
-
   CstBoolVar(VM vm, GR gr, CstBoolVar from)
     //    : WithHome(vm,gr,from->home()), _varIndex(from->_varIndex) {}
     : WithHome(vm,gr,from), _varIndex(from._varIndex) {}
@@ -45,13 +40,31 @@ public:
   Gecode::BoolVar& boolVar(VM vm) {
     return getVar();
   }
+
+  inline
+  UnstableNode min(VM vm);
+
+  inline
+  UnstableNode max(VM vm);
+
+  inline
+  UnstableNode value(VM vm);
+
+  inline
+  UnstableNode zero(VM vm);
+
+  inline
+  UnstableNode one(VM vm);
+
+  inline
+  UnstableNode none(VM vm);
 public:
   // Miscellaneous
   void printReprToStream(RichNode self, VM vm, std::ostream& out, int depth, int width) {
     out << getVar();
   }
 private:
-  // The actual representation of a constraint integer variable is a 
+  // The actual representation of a constraint boolean variable is a 
   // Gecode::BoolVar, here we store the index of an object of that class
   // inside an array stored by a Gecode::Space
   size_t _varIndex;

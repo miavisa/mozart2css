@@ -62,6 +62,7 @@
 #include "modules/modvirtualbytestring.hh"
 #include "modules/modvirtualstring.hh"
 #include "modules/modintvar.hh"
+#include "modules/modboolvar.hh"
 #include "modules/modpropagators.hh"
 #include "modules/modsearch.hh"
 

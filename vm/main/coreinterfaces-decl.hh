@@ -750,7 +750,31 @@ struct Interface<BoolVarLike>:
 
   Gecode::BoolVar& boolVar(RichNode self, VM vm) {
       raiseTypeError(vm, MOZART_STR("BoolVarLike"), self);
-    }
+  }
+  
+  UnstableNode min(RichNode self, VM vm) {
+    raiseTypeError(vm, MOZART_STR("BoolVarLike"), self);
+  }
+  
+  UnstableNode max(RichNode self, VM vm) {
+    raiseTypeError(vm, MOZART_STR("BoolVarLike"), self);
+  }
+
+  UnstableNode value(RichNode self, VM vm) {
+    raiseTypeError(vm, MOZART_STR("BoolVarLike"), self);
+  }
+  
+  UnstableNode zero(RichNode self, VM vm) {
+    raiseTypeError(vm, MOZART_STR("BoolVarLike"), self);
+  }
+
+  UnstableNode one(RichNode self, VM vm) {
+    raiseTypeError(vm, MOZART_STR("BoolVarLike"), self);
+  }
+
+  UnstableNode none(RichNode self, VM vm) {
+    raiseTypeError(vm, MOZART_STR("BoolVarLike"), self);
+  }
 };
 
 class ConstraintSpace;
