@@ -32,6 +32,7 @@ functor
 
 require
   Search at 'x-oz://boot/Search'
+  Space at 'x-oz://boot/Space'
   
 % import
 %    ParSearch(engine: ParallelEngine) at 'x-oz://system/ParSearch.ozf'
@@ -39,6 +40,7 @@ require
 
 export
   dfs:  SearchDFS
+  one:  SearchOne
 %    one:      OneModule
 %    all:      All
 %    allS:     AllS
@@ -66,6 +68,16 @@ export
 
 define
   SearchDFS = Search.dfs
+  
+  fun {SearchOne P}
+    R S
+  in
+    {P R}
+    {Space.new P S}
+    {Space.ask S _}
+    {SearchDFS S}
+    [{Space.merge S}]
+  end
 
 %    fun {WrapP S}
 %       proc {$ X}
