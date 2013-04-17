@@ -127,7 +127,8 @@ export
 %    watch:          FdWatch
 
 %    %% Generic Propagators
-     linear: 	     FdpLinear
+   domain:         FdDomain
+   linear: 	   FdpLinear
 %    sum:            FdpSum
 %    sumC:           FdpSumC
 %    sumCN:          FdpSumCN
@@ -250,13 +251,13 @@ define
 	 R={MakeRecord L As} {RecordDom As R Dom}
       end
       
-      %proc {FdDom Dom Vec}
-	% case {VectorToType Vec}
-	% of list   then {ListDom Vec Dom}
-	% [] tuple  then {TupleDom {Width Vec} Vec Dom}
-	% [] record then {RecordDom {Arity Vec} Vec Dom}
-	% end
-      %end
+      proc {FdDom Dom Vec}
+	case {VectorToType Vec}
+	of list   then {ListDom Vec Dom}
+	[] tuple  then {TupleDom {Width Vec} Vec Dom}
+	[] record then {RecordDom {Arity Vec} Vec Dom}
+	end
+      end
    end
    
    FdIs = FDB.is
@@ -303,7 +304,7 @@ define
 
    FdpDistinct = FDP.distinct
    FdpDistinct2 = FDP.distinct2
-   FdDom = FDP.dom
+   FdDomain = FDP.dom
    %%% Distributor
    %Fdpdistribute = FDP.branch
    local
