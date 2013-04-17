@@ -791,7 +791,7 @@ struct Interface<ConstraintSpace>:
     raiseTypeError(vm, MOZART_STR("ConstraintSpace"), self);
   }
 
-  void changeConstraintSpace(RichNode self, VM vm, GecodeSpace* gs) {
+  void updateConstraintSpace(RichNode self, VM vm, GecodeSpace* gs) {
     raiseTypeError(vm, MOZART_STR("ConstraintSpace"), self);
   }
 };

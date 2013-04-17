@@ -23,8 +23,8 @@ public:
 			if(ConstraintSpace(space).isConstraintSpace(vm)) { 
 				GecodeSpace* gs = ConstraintSpace(space).constraintSpace(vm);
 				Gecode::DFS<GecodeSpace> e(gs);
-				while (GecodeSpace *sol = e.next())
-					ConstraintSpace(space).changeConstraintSpace(vm, sol);
+				GecodeSpace *sol = e.next();
+				ConstraintSpace(space).updateConstraintSpace(vm, sol);
 
 			}
 

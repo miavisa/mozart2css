@@ -359,7 +359,9 @@ public:
     return _cstSpace != nullptr;
   }
 
-  void changeCstSpace(GecodeSpace* cstSpace) {
+  void updateCstSpace(GecodeSpace* cstSpace) {
+    delete _cstSpace;
+    _cstSpace = nullptr;//Is this necessary?
     _cstSpace = cstSpace;
   }
   
