@@ -67,17 +67,17 @@ export
 %    end
 
 define
-  SearchDFS = Search.dfs
-  
-  fun {SearchOne P}
-    R S
-  in
-    {P R}
-    {Space.new P S}
-    {Space.ask S _}
-    {SearchDFS S}
-    [{Space.merge S}]
-  end
+   SearchDFS = Search.dfs
+   
+   fun {SearchOne P}
+      S
+   in
+      {P _}
+      {Space.new P S}
+      {Space.ask S _}
+      {SearchDFS S}
+      [{Space.merge S}]
+   end
 
 %    fun {WrapP S}
 %       proc {$ X}
