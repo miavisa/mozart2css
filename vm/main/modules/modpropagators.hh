@@ -225,7 +225,37 @@ public:
           
     return Gecode::IntSet();
   }
-   
+
+  static Gecode::IntSetArgs getIntSetArgs(VM vm, In x){
+    Gecode::IntSetArgs v;
+    
+    assert(x.is<Cons>());
+
+    if (x.is<Cons>()){
+      StableNode* head=x.as<Cons>().getHead();
+      StableNode* tail=x.as<Cons>().getTail();
+      while (true){
+    	UnstableNode uhead = Reference::build(vm, head);
+    	RichNode rhead = uhead;
+    	if(rhead.is<Cons>()){
+    	  assert(rhead.is<Cons>());
+	  Gecode::IntSet s=getIntSet(vm,rhead);
+	  v << s;
+	} 
+    	UnstableNode utail = Reference::build(vm, tail);
+    	RichNode rtail = utail;
+    	if (!rtail.is<Cons>()){
+    	  break;
+    	}	  
+    	UnstableNode ncons = Reference::build(vm, tail);
+    	RichNode rncons = ncons;
+    	head=rncons.as<Cons>().getHead();
+    	tail=rncons.as<Cons>().getTail();	
+      }
+      return v;
+    }
+  }
+  
   class Dom: public Builtin<Dom> {
   public:
     Dom(): Builtin("dom") {}
