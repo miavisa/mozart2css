@@ -267,6 +267,19 @@ public:
     }
   };
 
+  class Count: public Builtin<Count> {
+  public:
+    Count(): Builtin("count") {}
+
+    static void call(VM vm, In x, In n, In r, In m) {
+      assert(vm->getCurrentSpace()->hasConstraintSpace());
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      Gecode::IntRelType rt = atomToRelType(vm,r);
+      Gecode::count(home,getIntVarArgs(vm,x),(int)(n.as<SmallInt>().value()),rt,(int)(m.as<SmallInt>().value()));
+      home.status();
+    }
+  };
+
   class Rel: public Builtin<Rel> {
   public:
     Rel(): Builtin("rel") {}
