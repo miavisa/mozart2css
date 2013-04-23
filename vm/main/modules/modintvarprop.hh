@@ -71,6 +71,17 @@ public:
     }
   };
 
+  class Mult: public Builtin<Mult> {
+  public:
+    Mult(): Builtin("mult") {}
+    
+    static void call(VM vm, In x0, In x1, In x2) {
+      assert(vm->getCurrentSpace()->hasConstraintSpace());
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      Gecode::mult(home,IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm),IntVarLike(x2).intVar(vm));
+    }
+  };
+
   class Dom: public Builtin<Dom> {
   public:
     Dom(): Builtin("dom") {}
