@@ -82,6 +82,17 @@ public:
     }
   };
 
+  class Sqr: public Builtin<Sqr> {
+  public:
+    Sqr(): Builtin("sqr") {}
+    
+    static void call(VM vm, In x0, In x1) {
+      assert(vm->getCurrentSpace()->hasConstraintSpace());
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      Gecode::sqr(home,IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm));
+    }
+  };
+
   class Dom: public Builtin<Dom> {
   public:
     Dom(): Builtin("dom") {}
