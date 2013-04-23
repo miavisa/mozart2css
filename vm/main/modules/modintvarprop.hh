@@ -59,7 +59,18 @@ public:
       Gecode::max(home,getIntVarArgs(vm,x),IntVarLike(y).intVar(vm));
     }
   };
-  
+
+  class Abs: public Builtin<Abs> {
+  public:
+    Abs(): Builtin("abs") {}
+    
+    static void call(VM vm, In x0, In x1) {
+      assert(vm->getCurrentSpace()->hasConstraintSpace());
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      Gecode::abs(home,IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm));
+    }
+  };
+
   class Dom: public Builtin<Dom> {
   public:
     Dom(): Builtin("dom") {}
