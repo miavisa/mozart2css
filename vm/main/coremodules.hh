@@ -63,7 +63,7 @@
 #include "modules/modvirtualstring.hh"
 #include "modules/modintvar.hh"
 #include "modules/modboolvar.hh"
-#include "modules/modpropagators.hh"
+#include "modules/modintvarprop.hh"
 #include "modules/modsearch.hh"
 
 #endif // __COREMODULES_H
