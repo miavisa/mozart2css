@@ -104,6 +104,42 @@ public:
     }
   };
   
+  class Divmod: public Builtin<Divmod> {
+  public:
+    Divmod(): Builtin("divmod") {}
+    
+    static void call(VM vm, In x0, In x1, In x2, In x3) {
+      assert(vm->getCurrentSpace()->hasConstraintSpace());
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      Gecode::divmod(home,IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm),IntVarLike(x2).intVar(vm),IntVarLike(x3).intVar(vm));
+      home.status();
+    }
+  };
+
+  class DivI: public Builtin<DivI> {
+  public:
+    DivI(): Builtin("divI") {}
+    
+    static void call(VM vm, In x0, In x1, In x2) {
+      assert(vm->getCurrentSpace()->hasConstraintSpace());
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      Gecode::div(home,IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm),IntVarLike(x2).intVar(vm), Gecode::ICL_BND);
+      home.status();
+    }
+  };
+
+  class ModI: public Builtin<ModI> {
+  public:
+    ModI(): Builtin("modI") {}
+    
+    static void call(VM vm, In x0, In x1, In x2) {
+      assert(vm->getCurrentSpace()->hasConstraintSpace());
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      Gecode::mod(home,IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm),IntVarLike(x2).intVar(vm));
+      home.status();
+    }
+  };
+
   class Dom: public Builtin<Dom> {
   public:
     Dom(): Builtin("dom") {}
