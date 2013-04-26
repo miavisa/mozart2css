@@ -85,6 +85,57 @@ namespace internal {
       return new (sc->vm) DummyThread(sc, *this);
     }
   };
+  
+#ifdef VM_HAS_CSS
+  /**
+   * Propagation thread that contains the execution propagation of
+   * the constraint space associated with this space.
+   * Create this thread when a constraint space is instantiated (on demand).
+   * Propagation will run every time ths statusVar is needed.
+   */
+  class PropagationThread: public Runnable {
+  private:
+    typedef Runnable Super;
+  public:
+    PropagationThread(VM vm, Space* space): Runnable(vm, space) {
+      resume();
+    }
+    
+    PropagationThread(GR gr, PropagationThread& from): Runnable(gr, from) {}
+
+    void run() {
+      std::cout << "Runing propagation 1...\n";
+      /*if (!DataflowVariable(*getSpace()->getStatusVar()).isNeeded(vm)){
+	Super::suspendOnVar(vm, *getSpace()->getStatusVar());
+	std::cout << "Runing propagation suspended!!...\n";
+	return;
+      }
+      std::cout << "Runing propagation 2...\n";
+      getSpace()->propagateSpace(vm);
+      */
+      terminate();
+    }
+
+    void resume(bool skipSchedule = false) {
+      if (!isRunnable() && !isTerminated())
+        Super::resume(skipSchedule);
+    }
+
+    void suspend(bool skipUnschedule = false) {
+      if (isRunnable() && !isTerminated())
+        Super::suspend(skipUnschedule);
+    }
+
+    Runnable* gCollect(GC gc) {
+      return new (gc->vm) PropagationThread(gc, *this);
+    }
+
+    Runnable* sClone(SC sc) {
+      return new (sc->vm) PropagationThread(sc, *this);
+    }
+  };
+
+#endif
 }
 
 /////////////////
@@ -347,6 +398,7 @@ void Space::clearStatusVar(VM vm) {
 }
 
 void Space::bindStatusVar(VM vm, RichNode value) {
+  std::cout << "Bindstatusvar to: " << value.toDebugString() << std::endl;
   RichNode statusVar = *getStatusVar();
   assert(statusVar.isTransient());
   DataflowVariable(statusVar).bind(vm, value);
@@ -499,12 +551,32 @@ void Space::checkStability() {
     // Succeeded
     vm->setCurrentSpace(parent);
 
-    if (hasDistributor()) {
+    /*if (hasDistributor()) {
       nativeint alternatives = getDistributor()->getAlternatives();
       UnstableNode newStatus = buildTuple(vm, vm->coreatoms.alternatives,
                                           alternatives);
       bindStatusVar(vm, newStatus);
-    } else {
+      } */
+    int gecodeStatus=-1;
+    if(hasConstraintSpace()){
+      //Propagate the constraint space associated to this mozart space
+      gecodeStatus = _cstSpace->propagate();
+      //if the mozart space is failed, then return failed (failed space is stronger than distributable space?)
+      if (gecodeStatus == 0){//failed space return immediately.
+	bindStatusVar(vm, Atom::build(vm, vm->coreatoms.failed));
+      }
+      if(gecodeStatus == 2){
+	//if the mozart space is succeded, then return this tuple (distributable space is stronger than succeded space?).
+	std::cout << "Is stable gecodespace: " << _cstSpace->stable() << std::endl;
+	const Gecode::Choice *ch = _cstSpace->choice();
+	//_cstSpace->setChoice(ch);
+	unsigned int all = ch->alternatives();
+	//if distributable space then create tuple alternatives(N)
+	bindStatusVar(vm,  buildTuple(vm, vm->coreatoms.alternatives, (nativeint)all));
+      }
+    }
+    else {
+      std::cout << "checkStab stable-no distributor" << std::endl;
       bindStatusVar(vm, genSucceeded(vm, getThreadCount() == 0));
     }
   } else {
@@ -512,12 +584,26 @@ void Space::checkStability() {
 
     if (!hasRunnableThreads()) {
       // No runnable threads: suspended
-
       UnstableNode newStatusVar = OptVar::build(vm, parent);
       bindStatusVar(vm, buildTuple(vm, vm->coreatoms.suspended, newStatusVar));
       _statusVar = std::move(newStatusVar);
     }
   }
+}
+
+//Constraint space
+GecodeSpace& Space::getCstSpace(void){
+  if (_cstSpace == nullptr){
+    _cstSpace = new GecodeSpace;
+    //Add a thread to run propagation when needed...
+    //Runnable* pp = 
+    //new internal::PropagationThread(vm, this);
+    //std::cout << pp->isRunnable() << std::endl;
+    //pp->suspendOnVar(vm, _statusVar);
+    //clearStatusVar(vm);
+    //std::cout << "Propagation thread added to space: " << _cstSpace << std::endl;
+  }
+  return *_cstSpace;
 }
 
 // Installation and deinstallation

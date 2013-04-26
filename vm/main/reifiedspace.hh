@@ -128,29 +128,33 @@ UnstableNode ReifiedSpace::askSpace(RichNode self, VM vm) {
   if (!space->isAdmissible(vm))
     raise(vm, vm->coreatoms.spaceAdmissible, self);
 
-#ifdef VM_HAS_CSS
-  int gecodeStatus=-1;
+  /*#ifdef VM_HAS_CSS
+  //    int gecodeStatus=-1;
   if(space->hasConstraintSpace()){
+    if(!space->getCstSpace().stable()){
+      space->propagateSpace(vm);
+    }
+    
     //Propagate the constraint space associated to this mozart space
     gecodeStatus = (space->getCstSpace()).propagate();
     //if the mozart space is failed, then return failed (failed space is strongest than distributable space?)
     if (gecodeStatus == 0){//failed space return immediately.
       return Atom::build(vm, vm->coreatoms.failed);
-    }
+      }
   }
 
-#endif
+  #endif*/
   RichNode statusVar = *space->getStatusVar();
   if (matchesTuple(vm, statusVar, vm->coreatoms.succeeded, wildcard())) {
-#ifdef VM_HAS_CSS
-    if(gecodeStatus == 2){
+    /*#ifdef VM_HAS_CSS
+      if(gecodeStatus == 2){
       //if the mozart space is succeded, then return this tuple (distributable space is strongest than succeded space?).
       const Gecode::Choice *ch = space->getCstSpace().choice();
       unsigned int all = ch->alternatives();
       //if distributable space then create tuple alternatives(N)
       return buildTuple(vm, vm->coreatoms.alternatives, (nativeint)all);
     }
-#endif
+    #endif*/
     return Atom::build(vm, vm->coreatoms.succeeded);
   } else {
     
@@ -210,11 +214,16 @@ void ReifiedSpace::commitSpace(RichNode self, VM vm, RichNode value) {
 
 #ifdef VM_HAS_CSS
   if(space->hasConstraintSpace()){
+    std::cout << "commit yes cstspace " << std::endl;
+    if(!space->getCstSpace().stable())
+      space->propagateSpace(vm);
     if(space->getCstSpace().branchers()!=0){
+      std::cout << "commit yes branches " << std::endl;
       nativeint alt= getArgument<nativeint>(vm,value, MOZART_STR("integer"));
       const Gecode::Choice *ch = space->getCstSpace().choice();
+      //space->getCstSpace().choice();
       space->getCstSpace().commit(*ch, (unsigned int)alt);
-      //std::cout << "commit done " << std::endl;
+      std::cout << "commit done " << std::endl;
       return;
     }
   }

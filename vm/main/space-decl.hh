@@ -280,6 +280,15 @@ private:
   inline
   void checkStability();
 
+public:
+  //Constraint propagation
+  //inline
+  void propagateSpace(VM vm){
+    clearStatusVar(vm);
+    assert(hasConstraintSpace());
+    getCstSpace().propagate();
+  }
+
 // Reference
 
 private:
@@ -349,11 +358,12 @@ public:
   // That is, memmory that is not managed by the mozart virtual machine. For
   // that reason we have to handle the copy and clonning of gecode spaces in
   // order to not cause memmory leaks. 
-  GecodeSpace& getCstSpace() {
-    if (_cstSpace == nullptr)
+  inline
+  GecodeSpace& getCstSpace(void);// {
+    /*if (_cstSpace == nullptr)
       _cstSpace = new GecodeSpace;
     return *_cstSpace;
-  }
+    }*/
 
   bool hasConstraintSpace() {
     return _cstSpace != nullptr;
