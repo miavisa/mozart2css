@@ -98,7 +98,6 @@ namespace internal {
   public:
     PropagationThread(VM vm, Space* space): Runnable(vm, space) {
       resume();
-      //Super::suspendOnVar(vm, *getSpace()->getStatusVar());
     }
     
     PropagationThread(GR gr, PropagationThread& from): Runnable(gr, from) {}
@@ -111,7 +110,7 @@ namespace internal {
 	Super::suspendOnVar(vm, *getSpace()->getStatusVar());
 	std::cout << "Runing propagation suspended!!...\n";
 	return;
-	}*/      
+	}*/  
       getSpace()->getCstSpace().propagate();
       terminate(); 
     }
@@ -606,17 +605,19 @@ void Space::checkStability() {
 GecodeSpace& Space::getCstSpace(bool createThread){
   if (_cstSpace == nullptr)
     _cstSpace = new GecodeSpace;
-  if (_propagator == nullptr && createThread){
-    //Adding a new runnable thread makes the mozart space unstable,
-    //so we clear the status var to allow a forthcoming status change...
+  if (_propagator == nullptr){
+    if (createThread){
+      //Adding a new runnable thread makes the mozart space unstable,
+      //so we clear the status var to allow a forthcoming status change...
     _propagator = new internal::PropagationThread(vm, this);
     clearStatusVar(vm);
-  }else {
-    if (_propagator->isTerminated() && createThread){
+    }
+  }else if (_propagator->isTerminated()){
+    if (createThread){
       _propagator = nullptr;
       _propagator = new internal::PropagationThread(vm, this);
-      clearStatusVar(vm);
-    }
+      clearStatusVar(vm); 
+    }   
   }
   return *_cstSpace;
 }
