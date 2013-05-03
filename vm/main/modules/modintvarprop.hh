@@ -269,7 +269,7 @@ public:
 
     static void call(VM vm, In x0, In x1, In x2) {
       assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       Gecode::min(home,IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm),IntVarLike(x2).intVar(vm));
     }
   };
@@ -280,7 +280,7 @@ public:
 
     static void call(VM vm, In x, In y) {
       assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       Gecode::min(home,getIntVarArgs(vm,x),IntVarLike(y).intVar(vm));
     }
   };
@@ -291,7 +291,7 @@ public:
 
     static void call(VM vm, In x, In s) {
       assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       Gecode::dom(home,IntVarLike(x).intVar(vm),getIntSet(vm,s));
     }
   };
@@ -302,7 +302,7 @@ public:
 
     static void call(VM vm, In x, In s) {
       assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       assert(s.is<SmallInt>());
       nativeint num = s.as<SmallInt>().value();
       Gecode::dom(home,IntVarLike(x).intVar(vm),(int)(num));
@@ -315,7 +315,7 @@ public:
 
     static void call(VM vm, In x, In s) {
       assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       assert(s.is<SmallInt>());
       nativeint num = s.as<SmallInt>().value();
       Gecode::dom(home,getIntVarArgs(vm,x),(int)(num));
@@ -328,7 +328,7 @@ public:
 
     static void call(VM vm, In x, In min, In max) {
       assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       assert(min.is<SmallInt>());
       assert(max.is<SmallInt>());
       nativeint nmin = min.as<SmallInt>().value();
@@ -343,7 +343,7 @@ public:
 
     static void call(VM vm, In x, In min, In max) {
       assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       assert(min.is<SmallInt>());
       assert(max.is<SmallInt>());
       nativeint nmin = min.as<SmallInt>().value();
@@ -358,7 +358,7 @@ public:
 
     static void call(VM vm, In x, In s) {
       assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       Gecode::dom(home,getIntVarArgs(vm,x),getIntSet(vm,s));
     }
   }; 
@@ -369,7 +369,7 @@ public:
 
     static void call(VM vm, In x, In n, In r, In m) {
       assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       Gecode::IntRelType rt = atomToRelType(vm,r);
       Gecode::count(home,getIntVarArgs(vm,x),(int)(n.as<SmallInt>().value()),rt,(int)(m.as<SmallInt>().value()));
     }
@@ -381,7 +381,7 @@ public:
 
     static void call(VM vm, In x0, In r, In x1, In icl) {
       assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       Gecode::IntRelType rt = atomToRelType(vm,r);
       Gecode::rel(home,IntVarLike(x0).intVar(vm),rt,IntVarLike(x1).intVar(vm));
     }
@@ -393,7 +393,7 @@ public:
     
     static void call(VM vm, In x) {
       assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       Gecode::distinct(home,getIntVarArgs(vm,x));
     }
   };
@@ -404,7 +404,7 @@ public:
     
     static void call(VM vm, In v, In x) {
       assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       Gecode::distinct(home,getIntArgs(vm,v),getIntVarArgs(vm,x));
     }
   };
@@ -415,7 +415,7 @@ public:
     
     static void call(VM vm, In v, In x, In r, In c) {
       assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       Gecode::IntRelType rt = atomToRelType(vm,r);
       assert(c.is<SmallInt>());
       nativeint val=c.as<SmallInt>().value();
@@ -428,7 +428,7 @@ public:
     Branch(): Builtin("branch") {}
     static void call(VM vm, In x, In bvar, In bval) {
       assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       Gecode::IntVarBranch bvart = atomToIntVarBranch(vm,bvar); 
       Gecode::IntValBranch bvalt = atomToIntValBranch(vm,bval);
       Gecode::branch(home,getIntVarArgs(vm,x),bvart,bvalt); 
@@ -441,7 +441,7 @@ public:
     
     static void call(VM vm, In n, In x0, In x1){
       assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       Gecode::element(home, getIntSharedArray(vm,n), IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm));
     }
   };

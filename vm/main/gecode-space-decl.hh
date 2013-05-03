@@ -30,9 +30,11 @@ public:
   inline
   virtual ~GecodeSpace(void);
   inline
-  int propagate(void);
+  void propagate(void);
   inline
   void fail(void);
+  inline
+  int getLastStatus(void);
   //This methods updates all the vars of *this* gecodeSpace with
   //the information available in *other* gecodeSpace.
   inline

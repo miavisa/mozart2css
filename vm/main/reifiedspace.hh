@@ -128,36 +128,10 @@ UnstableNode ReifiedSpace::askSpace(RichNode self, VM vm) {
   if (!space->isAdmissible(vm))
     raise(vm, vm->coreatoms.spaceAdmissible, self);
 
-  /*#ifdef VM_HAS_CSS
-  //    int gecodeStatus=-1;
-  if(space->hasConstraintSpace()){
-    if(!space->getCstSpace().stable()){
-      space->propagateSpace(vm);
-    }
-    
-    //Propagate the constraint space associated to this mozart space
-    gecodeStatus = (space->getCstSpace()).propagate();
-    //if the mozart space is failed, then return failed (failed space is strongest than distributable space?)
-    if (gecodeStatus == 0){//failed space return immediately.
-      return Atom::build(vm, vm->coreatoms.failed);
-      }
-  }
-
-  #endif*/
   RichNode statusVar = *space->getStatusVar();
   if (matchesTuple(vm, statusVar, vm->coreatoms.succeeded, wildcard())) {
-    /*#ifdef VM_HAS_CSS
-      if(gecodeStatus == 2){
-      //if the mozart space is succeded, then return this tuple (distributable space is strongest than succeded space?).
-      const Gecode::Choice *ch = space->getCstSpace().choice();
-      unsigned int all = ch->alternatives();
-      //if distributable space then create tuple alternatives(N)
-      return buildTuple(vm, vm->coreatoms.alternatives, (nativeint)all);
-    }
-    #endif*/
     return Atom::build(vm, vm->coreatoms.succeeded);
-  } else {
-    
+  } else {    
     return { vm, statusVar };
   }
 }
@@ -214,16 +188,31 @@ void ReifiedSpace::commitSpace(RichNode self, VM vm, RichNode value) {
 
 #ifdef VM_HAS_CSS
   if(space->hasConstraintSpace()){
-    std::cout << "commit yes cstspace " << std::endl;
-    if(!space->getCstSpace().stable())
-      space->propagateSpace(vm);
-    if(space->getCstSpace().branchers()!=0){
-      std::cout << "commit yes branches " << std::endl;
+    GecodeSpace& home = space->getCstSpace(true);
+    if(home.branchers()!=0){
       nativeint alt= getArgument<nativeint>(vm,value, MOZART_STR("integer"));
-      const Gecode::Choice *ch = space->getCstSpace().choice();
-      //space->getCstSpace().choice();
-      space->getCstSpace().commit(*ch, (unsigned int)alt);
-      std::cout << "commit done " << std::endl;
+      //@anfelbar: I didn't use the gecode primitive commit because it needs a stable space.
+      //In consequence, it is not allowed to make several commits on a given space.
+      //What we have then? A temporal commit using Gecode::rel. Of course, this breaks
+      //all support of the gecode strategy selection that we already support.
+      //However, the real commit operation, whos responsable is the mozart distributor, will
+      //select the variable and value according with the real user options.
+      unsigned int i=0;
+      while (true){
+	if (home.intVar(i).size()!=1){
+	  if (alt==0){
+	    //Apply the constraint X =: min(x)
+	    Gecode::rel(home, home.intVar(i), Gecode::IRT_EQ, home.intVar(i).min());
+	    break;
+	  }
+	  else{
+	    //Apply the constraint X \=: min(x)
+	    Gecode::rel(home, home.intVar(i), Gecode::IRT_NQ, home.intVar(i).min());
+	    break;
+	  }
+	}
+	i++;
+      }
       return;
     }
   }

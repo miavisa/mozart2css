@@ -35,11 +35,14 @@ GecodeSpace::~GecodeSpace(void) {
   //std::cout << "Destructed gecode space" << std::endl;
 }
   
-int GecodeSpace::propagate(void){
+void GecodeSpace::propagate(void){
   //std::cout << "GecodeSpace: propagating... " <<  std::endl;
   lastStatus= this->status();
-  return (int) lastStatus;
 }
+
+  int GecodeSpace::getLastStatus(void){
+    return (int) lastStatus;
+  }
 
   void GecodeSpace::fail(){
     Gecode::Space::fail();
@@ -109,7 +112,7 @@ void GecodeSpace::dumpSpaceInformation(void) const {
 	//std::cout << "Erased gecodespace pos " << i << std::endl;
       }
     }
-    std::cout << "After garbage collection there are " << alive.size() << " GecodeSpaces alive" << std::endl;
+    //std::cout << "After garbage collection there are " << alive.size() << " GecodeSpaces alive" << std::endl;
   }
 }
 
