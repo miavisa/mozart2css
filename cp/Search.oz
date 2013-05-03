@@ -45,19 +45,18 @@ export
 %    allS:     AllS
 %    allP:     AllP
 %    best:     BestModule
-  gecode: SearchGecode
 %    object:   SearchObject
-%    base:     SearchBase
+  base:   SearchBase
+  gecode: SearchGecode
 %    parallel: ParallelEngine
 
-% prepare
-
-%    %% General help routines
-%    proc {NewKiller ?Killer ?KillFlag}
-%       proc {Killer}
-%          KillFlag=kill
-%       end
-%    end
+prepare
+  %% General help routines
+  proc {NewKiller ?Killer ?KillFlag}
+    proc {Killer}
+      KillFlag=kill
+    end
+  end
 
 %    %%
 %    %% Different wrappers for creation of output
@@ -103,21 +102,21 @@ define
   %% The one solution search module
   %%
 
-%    fun {OneDepthNR KF S}
-%       if {IsFree KF} then
-%          case {Space.ask S}
-%          of failed then nil
-%          [] succeeded then S
-%          [] alternatives(N) then C={Space.clone S} in
-%             {Space.commit1 S 1}
-%             case {OneDepthNR KF S}
-%             of nil then {Space.commit2 C 2 N} {OneDepthNR KF C}
-%             elseof O then O
-%             end
-%          end
-%       else nil
-%       end
-%    end
+  fun {OneDepthNR KF S}
+    if {IsFree KF} then
+      case {Space.ask S}
+      of failed then nil
+      [] succeeded then S
+      [] alternatives(N) then C={Space.clone S} in
+        {Space.commit S 0}
+        case {OneDepthNR KF S}
+        of nil then {Space.commit C 1} {OneDepthNR KF C}
+        elseof O then O
+        end
+      end
+    else nil
+    end
+  end
 
 %    local
 %       fun {AltCopy KF I M S MRD}
@@ -170,13 +169,13 @@ define
       {Search.dfs S}
     end
 
-%       fun {OneDepth P MRD ?KP}
-%          KF={NewKiller ?KP} S={Space.new P}
-%       in
-%          if MRD==1 then {OneDepthNR KF S}
-%          else {OneDepthR KF S S nil MRD MRD}
-%          end
-%       end
+    fun {OneDepth P MRD ?KP}
+      KF={NewKiller ?KP} S={Space.new P}
+    in
+      if MRD==1 then {OneDepthNR KF S}
+      else nil %{OneDepthR KF S S nil MRD MRD}
+      end
+    end
 
 %       local
 %          fun {AltCopy KF I M S CD MRD CO}
@@ -293,25 +292,24 @@ define
                                   elseof S then [S]
                                   end
                                 end
-%                       depth:    fun {$ P MRD ?KP}
-%                                    case {OneDepth P MRD ?KP}
-%                                    of nil then nil
-%                                    elseof S then [{Space.merge S}]
-%                                    end
-%                                 end
-%                       depthP:   fun {$ P MRD ?KP}
-%                                    case {OneDepth P MRD ?KP}
-%                                    of nil then nil
-%                                    elseof S then [{WrapP S}]
-%                                    end
-%                                 end
-%                       depthS:   fun {$ P MRD ?KP}
-%                                    case {OneDepth P MRD ?KP}
-%                                    of nil then nil
-%                                    elseof S then [S]
-%                                    end
-%                                 end
-
+                    depth:      fun {$ P MRD ?KP}
+                                  case {OneDepth P MRD ?KP}
+                                  of nil then nil
+                                  elseof S then [{Space.merge S}]
+                                  end
+                                end
+                    depthP:     fun {$ P MRD ?KP}
+                                  case {OneDepth P MRD ?KP}
+                                  of nil then nil
+                                  elseof S then [{WrapP S}]
+                                  end
+                                end
+                    depthS:     fun {$ P MRD ?KP}
+                                  case {OneDepth P MRD ?KP}
+                                  of nil then nil
+                                  elseof S then [S]
+                                  end
+                                end
 %                       bound:    fun {$ P MD MRD ?KP}
 %                                    case {OneBound P MD MRD ?KP}
 %                                    of nil then nil
@@ -850,9 +848,10 @@ define
   fun {SearchGOne P}
     {OneModule.dfsGecode P}
   end
-%    fun {SearchOne P}
-%       {OneModule.depth P 1 _}
-%    end
+
+  fun {SearchOne P}
+    {OneModule.depth P 1 _}
+  end
 
 %    fun {SearchAll P}
 %       {All P 1 _}
@@ -862,9 +861,10 @@ define
 %       {BestModule.bab P O 1 _}
 %    end
 
-%    SearchBase = base(one:  SearchOne
-%                      all:  SearchAll
-%                      best: SearchBest)
+  SearchBase = base(one:  SearchOne
+%                   all:  SearchAll
+%                   best: SearchBest
+                   )
 
   SearchGecode = gecode(one: SearchGOne)
 
