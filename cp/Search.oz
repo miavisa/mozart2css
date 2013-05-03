@@ -39,13 +39,13 @@ require
 %    Space
 
 export
-  dfs:  SearchDFS
-  one:  SearchOne
-%    one:      OneModule
+  dfs:    SearchDFS
+  one:    OneModule
 %    all:      All
 %    allS:     AllS
 %    allP:     AllP
 %    best:     BestModule
+  gecode: SearchGecode
 %    object:   SearchObject
 %    base:     SearchBase
 %    parallel: ParallelEngine
@@ -67,23 +67,13 @@ export
 %    end
 
 define
-   SearchDFS = Search.dfs
+  SearchDFS = Search.dfs
    
-   fun {SearchOne P}
-      S
-   in
-      {P _}
-      {Space.new P S}
-      {Space.ask S _}
-      {SearchDFS S}
-      [{Space.merge S}]
-   end
-
-%    fun {WrapP S}
-%       proc {$ X}
-%          {Space.merge {Space.clone S} X}
-%       end
-%    end
+  fun {WrapP S}
+    proc {$ X}
+      {Space.merge {Space.clone S} X}
+    end
+  end
 
 %    %%
 %    %% Make copy of space and recompute choices
@@ -109,9 +99,9 @@ define
 %       {Space.inject S proc {$ X} {O {Space.merge CS} X} end}
 %    end
 
-%    %%
-%    %% The one solution search module
-%    %%
+  %%
+  %% The one solution search module
+  %%
 
 %    fun {OneDepthNR KF S}
 %       if {IsFree KF} then
@@ -170,7 +160,16 @@ define
 %       end
 %    end
 
-%    local
+  local
+    fun {OneDFSGecode P}
+      S
+    in
+      {P _}
+      S={Space.new P}
+      {Space.ask S _}
+      {Search.dfs S}
+    end
+
 %       fun {OneDepth P MRD ?KP}
 %          KF={NewKiller ?KP} S={Space.new P}
 %       in
@@ -274,9 +273,27 @@ define
 %          end
 %       end
 
-%    in
+  in
 
-%       OneModule = one(depth:    fun {$ P MRD ?KP}
+    OneModule = one(dfsGecode:  fun {$ P}
+                                  case {OneDFSGecode P}
+                                  of nil then nil
+                                  elseof S then [{Space.merge S}]
+                                  end
+                                end
+                    dfsGecodeP: fun {$ P}
+                                  case {OneDFSGecode P}
+                                  of nil then nil
+                                  elseof S then [{WrapP S}]
+                                  end
+                                end
+                    dfsGecodeS: fun {$ P}
+                                  case {OneDFSGecode P}
+                                  of nil then nil
+                                  elseof S then [S]
+                                  end
+                                end
+%                       depth:    fun {$ P MRD ?KP}
 %                                    case {OneDepth P MRD ?KP}
 %                                    of nil then nil
 %                                    elseof S then [{Space.merge S}]
@@ -354,9 +371,9 @@ define
 %                                    [] succeeded(S) then [S]
 %                                    end
 %                                 end
-%                      )
+                   )
 
-%    end
+  end
 
 %    %%
 %    %% The all solution search module
@@ -827,9 +844,12 @@ define
 %       end
 %    end
 
-%    %%
-%    %% Often used short cuts
-%    %%
+  %%
+  %% Often used short cuts
+  %%
+  fun {SearchGOne P}
+    {OneModule.dfsGecode P}
+  end
 %    fun {SearchOne P}
 %       {OneModule.depth P 1 _}
 %    end
@@ -845,6 +865,8 @@ define
 %    SearchBase = base(one:  SearchOne
 %                      all:  SearchAll
 %                      best: SearchBest)
+
+  SearchGecode = gecode(one: SearchGOne)
 
 
 end
