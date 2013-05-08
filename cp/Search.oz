@@ -74,20 +74,20 @@ define
     end
   end
 
-%    %%
-%    %% Make copy of space and recompute choices
-%    %%
-%    local
-%       proc {ReDo Is C}
-%          case Is of nil then skip
-%          [] I|Ir then {ReDo Ir C} {Space.commit1 C I}
-%          end
-%       end
-%    in
-%       proc {Recompute S Is C}
-%          C={Space.clone S} {ReDo Is C}
-%       end
-%    end
+  %%
+  %% Make copy of space and recompute choices
+  %%
+  local
+    proc {ReDo Is C}
+      case Is of nil then skip
+      [] I|Ir then {ReDo Ir C} {Space.commit C I-1}
+      end
+    end
+  in
+    proc {Recompute S Is C}
+      C={Space.clone S} {ReDo Is C}
+    end
+  end
 
 %    %%
 %    %% Injection of solution constraints for best solution search
@@ -177,47 +177,47 @@ define
       end
     end
 
-%       local
-%          fun {AltCopy KF I M S CD MRD CO}
-%             if I==M then
-%                {Space.commit1 S I}
-%                {OneBoundR KF S S nil CD MRD MRD CO}
-%             else
-%                C={Space.clone S}
-%                {Space.commit1 C I}
-%                O={OneBoundR KF C S [I] CD 1 MRD CO}
-%             in
-%                if {Space.is O} then O
-%                else {AltCopy KF I+1 M S CD MRD O}
-%                end
-%             end
-%          end
+    local
+      fun {AltCopy KF I M S CD MRD CO}
+        if I==M then
+          {Space.commit S I-1}
+          {OneBoundR KF S S nil CD MRD MRD CO}
+        else
+          C={Space.clone S}
+          {Space.commit C I-1}
+          O={OneBoundR KF C S [I] CD 1 MRD CO}
+        in
+          if {Space.is O} then O
+          else {AltCopy KF I+1 M S CD MRD O}
+          end
+        end
+      end
 
-%          fun {Alt KF I M S C As CD RD MRD CO}
-%             {Space.commit1 S I}
-%             if I==M then {OneBoundR KF S C I|As CD RD MRD CO}
-%             else O={OneBoundR KF S C I|As CD RD MRD CO} in
-%                if {Space.is O} then O
-%                else S={Recompute C As} in
-%                   {Alt KF I+1 M S C As CD RD MRD O}
-%                end
-%             end
-%          end
+      fun {Alt KF I M S C As CD RD MRD CO}
+        {Space.commit S I-1}
+        if I==M then {OneBoundR KF S C I|As CD RD MRD CO}
+        else O={OneBoundR KF S C I|As CD RD MRD CO} in
+          if {Space.is O} then O
+          else S={Recompute C As} in
+            {Alt KF I+1 M S C As CD RD MRD O}
+          end
+        end
+      end
 
-%          fun {OneBoundR KF S C As CD RD MRD CO}
-%             if {IsFree KF} then
-%                case {Space.ask S}
-%                of failed    then CO
-%                [] succeeded then S
-%                [] alternatives(M) then
-%                   if CD=<0 then cut
-%                   elseif RD==MRD then {AltCopy KF 1 M S CD-1 MRD CO}
-%                   else {Alt KF 1 M S C As CD-1 RD+1 MRD CO}
-%                   end
-%                end
-%             else nil
-%             end
-%          end
+      fun {OneBoundR KF S C As CD RD MRD CO}
+        if {IsFree KF} then
+          case {Space.ask S}
+          of failed    then CO
+          [] succeeded then S
+          [] alternatives(M) then
+            if CD=<0 then cut
+            elseif RD==MRD then {AltCopy KF 1 M S CD-1 MRD CO}
+            else {Alt KF 1 M S C As CD-1 RD+1 MRD CO}
+            end
+          end
+        else nil
+        end
+      end
 
 %          fun {OneIterR KF S CD MRD}
 %             if {IsFree KF} then C={Space.clone S} in
@@ -228,18 +228,19 @@ define
 %             else nil
 %             end
 %          end
-%       in
+    in
 
-%          fun {OneBound P MD MRD ?KP}
-%             S={Space.new P}
-%          in
-%             {OneBoundR {NewKiller ?KP} S S nil MD MRD MRD nil}
-%          end
+      fun {OneBound P MD MRD ?KP}
+        S={Space.new P}
+      in
+        {OneBoundR {NewKiller ?KP} S S nil MD MRD MRD nil}
+      end
 
 %          fun {OneIter P MRD ?KP}
 %             {OneIterR {NewKiller ?KP} {Space.new P} 1 MRD}
 %          end
-%       end
+
+    end
 
 %       local
 %          proc {Probe S D KF}
@@ -292,6 +293,7 @@ define
                                   elseof S then [S]
                                   end
                                 end
+
                     depth:      fun {$ P MRD ?KP}
                                   case {OneDepth P MRD ?KP}
                                   of nil then nil
@@ -310,27 +312,28 @@ define
                                   elseof S then [S]
                                   end
                                 end
-%                       bound:    fun {$ P MD MRD ?KP}
-%                                    case {OneBound P MD MRD ?KP}
-%                                    of nil then nil
-%                                    [] cut then cut
-%                                    elseof S then [{Space.merge S}]
-%                                    end
-%                                 end
-%                       boundP:   fun {$ P MD MRD ?KP}
-%                                    case {OneBound P MD MRD ?KP}
-%                                    of nil then nil
-%                                    [] cut then cut
-%                                    elseof S then [{WrapP S}]
-%                                    end
-%                                 end
-%                       boundS:   fun {$ P MD MRD ?KP}
-%                                    case {OneBound P MD MRD ?KP}
-%                                    of nil then nil
-%                                    [] cut then cut
-%                                    elseof S then [S]
-%                                    end
-%                                 end
+
+                    bound:      fun {$ P MD MRD ?KP}
+                                  case {OneBound P MD MRD ?KP}
+                                  of nil then nil
+                                  [] cut then cut
+                                  elseof S then [{Space.merge S}]
+                                  end
+                                end
+                    boundP:     fun {$ P MD MRD ?KP}
+                                  case {OneBound P MD MRD ?KP}
+                                  of nil then nil
+                                  [] cut then cut
+                                  elseof S then [{WrapP S}]
+                                  end
+                                end
+                    boundS:     fun {$ P MD MRD ?KP}
+                                  case {OneBound P MD MRD ?KP}
+                                  of nil then nil
+                                  [] cut then cut
+                                  elseof S then [S]
+                                  end
+                                end
 
 %                       iter:     fun {$ P MRD ?KP}
 %                                    case {OneIter P MRD ?KP}
