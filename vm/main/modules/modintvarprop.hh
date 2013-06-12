@@ -22,7 +22,7 @@ namespace mozart {
 
 	static void call(VM vm, In x0, In x1, In x2) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       
 	  if(IntVarLike(x0).isIntVarLike(vm) and IntVarLike(x1).isIntVarLike(vm) and IntVarLike(x2).isIntVarLike(vm)){
 	    Gecode::min(home,IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm),IntVarLike(x2).intVar(vm));
@@ -38,7 +38,7 @@ namespace mozart {
 
 	static void call(VM vm, In x, In y) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
 
 	  if(isIntVarArgs(vm,x) and IntVarLike(y).isIntVarLike(vm)){
 	    Gecode::min(home,getIntVarArgs(vm,x),IntVarLike(y).intVar(vm));
@@ -54,7 +54,7 @@ namespace mozart {
     
 	static void call(VM vm, In x0, In x1, In x2) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       
 	  if(IntVarLike(x0).isIntVarLike(vm) and IntVarLike(x1).isIntVarLike(vm) and IntVarLike(x2).isIntVarLike(vm)){
 	    Gecode::max(home,IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm),IntVarLike(x2).intVar(vm));
@@ -70,7 +70,7 @@ namespace mozart {
     
 	static void call(VM vm, In x, In y) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       
 	  if(isIntVarArgs(vm,x) and IntVarLike(y).isIntVarLike(vm)){
 	    Gecode::max(home,getIntVarArgs(vm,x),IntVarLike(y).intVar(vm));
@@ -86,7 +86,7 @@ namespace mozart {
     
 	static void call(VM vm, In x0, In x1) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
 
 	  if(IntVarLike(x0).isIntVarLike(vm) and IntVarLike(x1).isIntVarLike(vm)){
 	    Gecode::abs(home,IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm));
@@ -102,7 +102,7 @@ namespace mozart {
     
 	static void call(VM vm, In x0, In x1, In x2) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       
 	  if(IntVarLike(x0).isIntVarLike(vm) and IntVarLike(x1).isIntVarLike(vm) and IntVarLike(x2).isIntVarLike(vm)){
 	    Gecode::mult(home,IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm),IntVarLike(x2).intVar(vm));
@@ -118,7 +118,7 @@ namespace mozart {
     
 	static void call(VM vm, In x0, In x1) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
      
 	  if(IntVarLike(x0).isIntVarLike(vm) and IntVarLike(x1).isIntVarLike(vm)){
 	    Gecode::sqr(home,IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm));
@@ -134,7 +134,7 @@ namespace mozart {
     
 	static void call(VM vm, In x0, In x1) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
 
 	  if(IntVarLike(x0).isIntVarLike(vm) and IntVarLike(x1).isIntVarLike(vm)){
 	    Gecode::sqrt(home,IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm));
@@ -150,7 +150,7 @@ namespace mozart {
     
 	static void call(VM vm, In x0, In x1, In x2, In x3) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       
 	  if(IntVarLike(x0).isIntVarLike(vm) and IntVarLike(x1).isIntVarLike(vm) and IntVarLike(x2).isIntVarLike(vm) and IntVarLike(x3).isIntVarLike(vm)){
 	    Gecode::divmod(home,IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm),IntVarLike(x2).intVar(vm),IntVarLike(x3).intVar(vm));
@@ -166,7 +166,7 @@ namespace mozart {
     
 	static void call(VM vm, In x0, In x1, In x2) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
      
 	  if(IntVarLike(x0).isIntVarLike(vm) and IntVarLike(x1).isIntVarLike(vm) and IntVarLike(x2).isIntVarLike(vm)){
 	    Gecode::div(home,IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm),IntVarLike(x2).intVar(vm));
@@ -182,7 +182,7 @@ namespace mozart {
     
 	static void call(VM vm, In x0, In x1, In x2) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       
 	  if(IntVarLike(x0).isIntVarLike(vm) and IntVarLike(x1).isIntVarLike(vm) and IntVarLike(x2).isIntVarLike(vm)){
 	    Gecode::mod(home,IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm),IntVarLike(x2).intVar(vm));
@@ -198,7 +198,7 @@ namespace mozart {
 
 	static void call(VM vm, In x, In n) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
 
 	  if(IntVarLike(x).isIntVarLike(vm) and n.is<SmallInt>()){
 	    nativeint num = n.as<SmallInt>().value();
@@ -222,7 +222,7 @@ namespace mozart {
 
 	static void call(VM vm, In x, In n, In m) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       
 	  if(IntVarLike(x).isIntVarLike(vm) and n.is<SmallInt>() and m.is<SmallInt>()){
 	    nativeint min = n.as<SmallInt>().value();
@@ -249,7 +249,7 @@ namespace mozart {
 
 	static void call(VM vm, In x, In n, In m, In b) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       
 	  if(IntVarLike(x).isIntVarLike(vm) and n.is<SmallInt>() and m.is<SmallInt>() and BoolVarLike(b).isBoolVarLike(vm)){
 	    nativeint min = n.as<SmallInt>().value();
@@ -267,7 +267,7 @@ namespace mozart {
 
 	static void call(VM vm, In x, In n, In r, In m) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
 	  Gecode::IntRelType rt = atomToRelType(vm,r);
 	  Gecode::count(home,getIntVarArgs(vm,x),(int)(n.as<SmallInt>().value()),rt,(int)(m.as<SmallInt>().value()));
 	}
@@ -279,7 +279,7 @@ namespace mozart {
 
 	static void call(VM vm, In x, In r) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       
 	  if(isIntVarArgs(vm,x) and isAtomToRelType(vm,r)){
 	    Gecode::IntRelType rt = atomToRelType(vm,r);
@@ -296,7 +296,7 @@ namespace mozart {
 
 	static void call(VM vm, In x, In r, In y) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       
 	  if(IntVarLike(x).isIntVarLike(vm) and isAtomToRelType(vm,r) and IntVarLike(y).isIntVarLike(vm)){
 	    Gecode::IntRelType rt = atomToRelType(vm,r);
@@ -327,7 +327,7 @@ namespace mozart {
 
 	static void call(VM vm, In x, In r, In y, In b) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       
 	  if(IntVarLike(x).isIntVarLike(vm) and isAtomToRelType(vm,r) and IntVarLike(y).isIntVarLike(vm) and BoolVarLike(b).isBoolVarLike(vm)){
 	    Gecode::IntRelType rt = atomToRelType(vm,r);
@@ -349,7 +349,7 @@ namespace mozart {
     
 	static void call(VM vm, In x) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       
 	  if(isIntVarArgs(vm,x)){
 	    Gecode::distinct(home,getIntVarArgs(vm,x));
@@ -365,7 +365,7 @@ namespace mozart {
     
 	static void call(VM vm, In v, In x) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
       
 	  if(isIntArgs(vm,v) and isIntVarArgs(vm,x)){
 	    Gecode::distinct(home,getIntArgs(vm,v),getIntVarArgs(vm,x));
@@ -381,7 +381,7 @@ namespace mozart {
     
 	static void call(VM vm, In v, In r, In x) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
 	  if(isIntVarArgs(vm,v) and isAtomToRelType(vm,r) and x.is<SmallInt>()){
 	    nativeint val=x.as<SmallInt>().value();
 	    Gecode::IntRelType rt = atomToRelType(vm,r);
@@ -401,7 +401,7 @@ namespace mozart {
     
 	static void call(VM vm, In v, In r, In x, In c) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
 	  if(isIntVarArgs(vm,v) and isAtomToRelType(vm,r) and x.is<SmallInt>() and BoolVarLike(c).isBoolVarLike(vm)){
 	    nativeint val=x.as<SmallInt>().value();
 	    Gecode::IntRelType rt = atomToRelType(vm,r);
@@ -428,7 +428,7 @@ namespace mozart {
     
 	static void call(VM vm, In v, In r, In x, In c, In y) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
 	  if(isIntArgs(vm,v) and isIntVarArgs(vm,x) and isAtomToRelType(vm,r) and c.is<SmallInt>() and BoolVarLike(y).isBoolVarLike(vm)){
 	    nativeint val=c.as<SmallInt>().value();
 	    Gecode::IntRelType rt = atomToRelType(vm,r);
@@ -448,7 +448,7 @@ namespace mozart {
 	Branch(): Builtin("branch") {}
 	static void call(VM vm, In x, In bvar, In bval) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
 	  Gecode::IntVarBranch bvart = atomToIntVarBranch(vm,bvar); 
 	  Gecode::IntValBranch bvalt = atomToIntValBranch(vm,bval);
 	  Gecode::branch(home,getIntVarArgs(vm,x),bvart,bvalt); 
@@ -461,7 +461,7 @@ namespace mozart {
     
 	static void call(VM vm, In n, In x0, In x1){
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
 	  Gecode::element(home, getIntSharedArray(vm,n), IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm));
 	}
       };
