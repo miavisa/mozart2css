@@ -656,6 +656,17 @@ struct Interface<SpaceLike>:
   void killSpace(RichNode self, VM vm) {
     raiseTypeError(vm, "Space", self);
   }
+
+  void injectSpace(RichNode self, VM vm, RichNode callable) {
+    raiseTypeError(vm, "Space", self);
+   }
+
+#ifdef VM_HAS_CSS
+  void info(RichNode self, VM vm) {
+    raiseTypeError(vm, "Space", self);
+  }
+#endif
+
 };
 
 class ThreadLike;
@@ -756,6 +767,124 @@ struct Interface<StringLike>:
     raiseTypeError(vm, "String", self);
   }
 };
+
+#ifdef VM_HAS_CSS
+class ConstraintVar;
+template <>
+struct Interface<ConstraintVar>:
+    ImplementedBy<SmallInt, CstIntVar>,
+  NoAutoReflectiveCalls {
+
+  bool assigned(RichNode self, VM vm) {
+    raiseTypeError(vm, "ConstraintVar", self);
+  }
+};
+
+class IntVarLike;
+template<>
+struct Interface<IntVarLike>:
+    ImplementedBy<SmallInt, CstIntVar>,
+  NoAutoReflectiveCalls {
+
+  bool isIntVarLike(RichNode self, VM vm) {
+    return false;
+  }
+
+  Gecode::IntVar& intVar(RichNode self, VM vm) {
+      raiseTypeError(vm, "IntVarLike", self);
+    }
+  
+  UnstableNode min(RichNode self, VM vm) {
+    raiseTypeError(vm, "IntVarLike", self);
+  }
+
+  UnstableNode max(RichNode self, VM vm) {
+    raiseTypeError(vm, "IntVarLike", self);
+  }
+
+  UnstableNode value(RichNode self, VM vm) {
+    raiseTypeError(vm, "IntVarLike", self);
+  }
+  
+  UnstableNode isIn(RichNode self, VM vm, RichNode right) {
+    raiseTypeError(vm, "IntVarLike", self);
+  }    
+};
+
+class SetVarLike;
+template<>
+struct Interface<SetVarLike>:
+    ImplementedBy<CstSetVar>,
+  NoAutoReflectiveCalls {
+
+  bool isSetVarLike(RichNode self, VM vm) {
+    return false;
+  }
+
+  Gecode::SetVar& setVar(RichNode self, VM vm) {
+      raiseTypeError(vm, "SetVarLike", self);
+    }
+};
+
+class BoolVarLike;
+template<>
+struct Interface<BoolVarLike>:
+    ImplementedBy<CstBoolVar>,
+  NoAutoReflectiveCalls {
+
+  bool isBoolVarLike(RichNode self, VM vm) {
+    return false;
+  }
+
+  Gecode::BoolVar& boolVar(RichNode self, VM vm) {
+      raiseTypeError(vm, "BoolVarLike", self);
+  }
+  
+  UnstableNode min(RichNode self, VM vm) {
+    raiseTypeError(vm, "BoolVarLike", self);
+  }
+  
+  UnstableNode max(RichNode self, VM vm) {
+    raiseTypeError(vm, "BoolVarLike", self);
+  }
+
+  UnstableNode value(RichNode self, VM vm) {
+    raiseTypeError(vm, "BoolVarLike", self);
+  }
+  
+  UnstableNode zero(RichNode self, VM vm) {
+    raiseTypeError(vm, "BoolVarLike", self);
+  }
+
+  UnstableNode one(RichNode self, VM vm) {
+    raiseTypeError(vm, "BoolVarLike", self);
+  }
+
+  UnstableNode none(RichNode self, VM vm) {
+    raiseTypeError(vm, "BoolVarLike", self);
+   }
+ };
+ 
+class ConstraintSpace;
+template<>
+struct Interface<ConstraintSpace>:
+  ImplementedBy<ReifiedSpace>,
+  NoAutoReflectiveCalls {
+
+  bool isConstraintSpace(RichNode self, VM vm) {
+    return false;
+  }
+
+  GecodeSpace* constraintSpace(RichNode self, VM vm) {
+    raiseTypeError(vm, "ConstraintSpace", self);
+  }
+
+  void updateConstraintSpace(RichNode self, VM vm, GecodeSpace* gs) {
+    raiseTypeError(vm, "ConstraintSpace", self);
+  }
+};
+  
+#endif
 
 }
 

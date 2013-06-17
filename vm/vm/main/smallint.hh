@@ -30,6 +30,10 @@
 #include <string>
 #include <limits>
 
+#ifdef VM_HAS_CSS
+#include <gecode/int.hh>
+#endif
+
 #ifndef MOZART_GENERATOR
 
 namespace mozart {
@@ -308,6 +312,51 @@ UnstableNode SmallInt::tan(RichNode self, VM vm) {
 UnstableNode SmallInt::tanh(RichNode self, VM vm) {
   return Interface<Numeric>().tanh(self, vm);
 }
+
+#ifdef VM_HAS_CSS
+  //CstintVar ------------------------------------------------------------
+bool SmallInt::assigned(VM vm) {
+  if(!isIntVarLike(vm))
+    raiseTypeError(vm, "ConstraintVar", value());
+  return true;
+}
+// IntVarLike ---------------------------------------------------------------
+bool SmallInt::isIntVarLike(VM vm) {
+  return (Gecode::Int::Limits::min <= value()) &&
+         (value() <= Gecode::Int::Limits::max); 
+}
+
+  Gecode::IntVar& SmallInt::intVar(RichNode self, VM vm) {
+    CstIntVar x(vm,self,self);
+    return x.getVar();
+  }
+
+UnstableNode SmallInt::min(VM vm) {
+  if(!isIntVarLike(vm))
+    raiseTypeError(vm, "IntVarLike",value());
+  return SmallInt::build(vm,value());  
+}
+
+UnstableNode SmallInt::max(VM vm) {
+  if(!isIntVarLike(vm))
+    raiseTypeError(vm, "IntVarLike",value());
+  return SmallInt::build(vm,value());  
+}
+
+UnstableNode SmallInt::value(VM vm) {
+  if(!isIntVarLike(vm))
+    raiseTypeError(vm, "IntVarLike",value());
+  return SmallInt::build(vm,value());  
+}
+
+UnstableNode SmallInt::isIn(VM vm, RichNode right) {
+  nativeint r = getArgument<nativeint>(vm,right,"integer");
+  if (r < Gecode::Int::Limits::min || r > Gecode::Int::Limits::max)
+    raiseTypeError(vm,"IntVarLike",right);
+  return r == value() ? 
+         Boolean::build(vm,true) : Boolean::build(vm,false);
+}
+#endif
 
 }
 

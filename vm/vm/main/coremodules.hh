@@ -62,5 +62,8 @@
 #include "modules/modvirtualbytestring.hh"
 #include "modules/modvirtualstring.hh"
 #include "modules/modweakref.hh"
-
+#include "modules/modintvar.hh"
+#include "modules/modboolvar.hh"
+#include "modules/modintvarprop.hh"
+#include "modules/modsearch.hh"
 #endif // __COREMODULES_H

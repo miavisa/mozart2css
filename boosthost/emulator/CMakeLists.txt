@@ -5,6 +5,13 @@ set(MOZART_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/../..")
 # Configure compiler
 set(CMAKE_CXX_FLAGS "-Wall -std=c++0x ${CMAKE_CXX_FLAGS}")
 
+# Begin CSS block: build the system with constraint programming support
+if (BUILD_CSS)
+  set(GECODE_INCLUDES ${GECODE_INSTALL_DIR}/include)
+  set(CMAKE_CXX_FLAGS "-DVM_HAS_CSS=1 -I${GECODE_INCLUDES} ${CMAKE_CXX_FLAGS}")
+endif()
+# End CSS block
+
 if(WIN32)
   # Boost requires this
   add_definitions(-D_WIN32_WINNT=0x0501)
@@ -53,9 +60,9 @@ target_link_libraries(ozemulator mozartvmboost mozartvm ${Boost_LIBRARIES})
 # Here it starts to differ wildly on Windows
 if(NOT WIN32)
   target_link_libraries(ozemulator pthread)
-  if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    target_link_libraries(rt)
-  endif()
+  #if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  #  target_link_libraries(rt)
+  #endif()
 
   # Install
   install(TARGETS ozemulator DESTINATION bin)

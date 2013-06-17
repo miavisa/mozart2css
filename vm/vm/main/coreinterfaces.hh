@@ -68,7 +68,13 @@ namespace mozart {
 #include "CellLike-interf.hh"
 #include "ChunkLike-interf.hh"
 #include "StringLike-interf.hh"
-
+  //#ifdef VM_HAS_CSS
+#include "ConstraintVar-interf.hh"
+#include "IntVarLike-interf.hh"
+#include "SetVarLike-interf.hh"
+#include "BoolVarLike-interf.hh"
+#include "ConstraintSpace-interf.hh"
+//#endif
 //////////////
 // Callable //
 //////////////
