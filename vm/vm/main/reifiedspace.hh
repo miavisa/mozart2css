@@ -108,7 +108,7 @@ public:
 private:
   nativeint _alternatives;
   UnstableNode _var;
-};
+};  
 
 //////////////////
 // ReifiedSpace //

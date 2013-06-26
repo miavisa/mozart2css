@@ -9,8 +9,8 @@ class CstIntVar;
 
 #ifndef MOZART_GENERATOR
 #include "CstIntVar-implem-decl.hh"
-#endif
-
+#endif  
+  
 class CstIntVar: public WithHome,
   public DataType<CstIntVar>,
   public Transient,
@@ -91,10 +91,63 @@ private:
   size_t _varIndex;
 };// End class CstIntVar
 
+
+///////////////////////
+// Distributor_fd    //
+///////////////////////
+
+  template <class Strategy, class Value>
+  class Distributor_fd: public Distributor {
+  public:
+    Distributor_fd(VM vm, Space* space, nativeint alternatives) {
+      std::cout << "construct distributor_fd" << std::endl;
+      _alternatives = alternatives;
+      _var = OptVar::build(vm, space);
+    }
+
+    Distributor_fd(VM vm, Space *space, Gecode::IntVarArgs v) {
+      std::cout << "construct distributor_fd with IntVars" << std::endl;
+    }
+    
+    Distributor_fd(GR gr, Distributor_fd& from) {
+      _alternatives = from._alternatives;
+      gr->copyUnstableNode(_var, from._var);
+    }
+    
+    UnstableNode* getVar() {
+      return &_var;
+    }
+    
+    nativeint getAlternatives() {
+      return _alternatives;
+    }
+    
+    nativeint commit(VM vm, Space* space, nativeint value) {
+      // if (value > _alternatives)
+      //   return -value;
+      
+      // UnstableNode valueNode = build(vm, value);
+      // new (vm) UnifyThread(vm, space, &_var, &valueNode);
+      std::cout << "Commit distributor_fd" << std::endl;
+      
+      return 0;
+    }
+    
+    virtual Distributor* replicate(GR gr) {
+      return new (gr->vm) Distributor_fd(gr, *this);
+    }
+    
+  private:
+    Strategy _s;
+    Value _v;
+    nativeint _alternatives;
+    UnstableNode _var;
+  };
+  
 #ifndef MOZART_GENERATOR
 #include "CstIntVar-implem-decl-after.hh"
 #endif
-
+  
 } // End namespace mozart
 
 #endif // __CSTINTVAR_DECL_H

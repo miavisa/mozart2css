@@ -445,10 +445,12 @@ namespace mozart {
       class Distribute: public Builtin<Distribute> {
       public:
 	Distribute(): Builtin("distribute") {}
-	static void call(VM vm, In tec, In v) {
+	static void call(VM vm, In variable, In value) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  //GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
-	  std::cout << "will choose a distributor" << std::endl; 
+	  Space* space = vm->getCurrentSpace();
+	  nativeint alternatives = value.as<SmallInt>().value();
+	  Distributor_fd<int,int> *distri = new (vm) Distributor_fd<int,int>(vm, space, alternatives);
+	  space->setDistributor(distri);
 	}
       };
       
