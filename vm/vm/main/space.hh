@@ -404,8 +404,8 @@ void Space::clearStatusVar(VM vm) {
 
 void Space::bindStatusVar(VM vm, RichNode value) {
   RichNode statusVar = *getStatusVar();
-  assert(statusVar.isTransient());
-  DataflowVariable(statusVar).bind(vm, value);
+  if (statusVar.isTransient())
+    DataflowVariable(statusVar).bind(vm, value);
 }
 
 void Space::bindStatusVar(VM vm, UnstableNode&& value) {
