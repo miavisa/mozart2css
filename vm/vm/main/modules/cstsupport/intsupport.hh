@@ -31,6 +31,27 @@ static Gecode::IntRelType atomToRelType(VM vm, In r) {
   return Gecode::IRT_GR;
 }
   
+static bool isAtomToTaskType(VM vm, In r) {
+    atom_t a = getArgument<atom_t>(vm,r,("Atom"));
+    if (a == vm->coreatoms.tt_fixp or a == vm->coreatoms.tt_fixs or a == vm->coreatoms.tt_fixe){
+      return true;
+    }else{
+      return false;
+    }
+  }
+
+
+static Gecode::TaskType atomToTaskType(VM vm, In r) {
+  if(isAtomToTaskType(vm, r) == false){
+      raiseTypeError(vm,("InvalidTaskType"),r);
+  }
+  atom_t a = getArgument<atom_t>(vm,r,("Atom"));
+  if (a == vm->coreatoms.tt_fixp) return Gecode::TT_FIXP;
+  if (a == vm->coreatoms.tt_fixs) return Gecode::TT_FIXS;
+  if (a == vm->coreatoms.tt_fixe) return Gecode::TT_FIXE;
+  return Gecode::TT_FIXE;
+}
+
   //Uncomment this when we use it in a propagator builtin. 
   //Avoing compilation warning.
   /*static Gecode::IntConLevel atomToIntConLevel(VM vm, In l) {
