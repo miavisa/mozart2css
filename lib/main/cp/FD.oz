@@ -130,6 +130,12 @@ export
    domain:         FdDomain
    linear: 	   FdpLinear
    count:          Fdpcount
+   member:	   FdpMember
+   binpacking:     FdpBinpacking
+   channel:        FdpChannel
+   element:	   FdpElement
+   sorted:	   FdpSorted
+   cumulative:     FdpCumulative
 %    sum:            FdpSum
 %    sumC:           FdpSumC
 %    sumCN:          FdpSumCN
@@ -331,6 +337,81 @@ define
 	    raise malFormed(post)
 	end
      end
+   end
+
+	%%% Element constraints
+   
+   proc {FdpElement Post}
+     W = {Record.width Post}
+   in
+	case W
+	of 3 then {FDP.element3 Post.1 Post.2 Post.3}
+	[] 6 then {FDP.element6 Post.1 Post.2 Post.3 Post.4 Post.5 Post.6}
+	else
+	   raise malFormed(post) end
+	end
+   end
+
+   %%%Sorted constraint
+   proc {FdpSorted Post}
+     	W = {Record.width Post}	
+   in
+	case W
+	of 2 then {FDP.sorted2 Post.1 Post.2}
+	[] 3 then {FDP.sorted3 Post.1 Post.2 Post.3}
+	else
+	   raise malFormed(post)
+	end
+      end
+   end
+
+   
+   %%% Membership constraints
+
+   proc {FdpMember Post}
+     W = {Record.width Post}
+   in
+	case W
+	of 2 then {FDP.member2 Post.1 Post.2}
+	[] 3 then {FDP.member3 Post.1 Post.2 Post.3}
+	else
+           raise malFormed(post) end
+   	end
+   end	 
+
+   
+   %%%Binpacking constraints
+   
+   proc {FdpBinpacking Post}
+     W = {Record.width Post}
+   in
+	case W
+	of 3 then {FDP.binpacking Post.1 Post.2 Post.3}
+	else
+    	   raise malFormed(post) end
+	end
+   end
+   
+   %%%Scheduling constraints
+   proc {FdpCumulative Post}
+     W = {Record.width Post}
+   in 
+      case W
+      of 5 then {FDP.cumulative5 Post.1 Post.2 Post.3 Post.4 Post.5}
+      else
+	 raise malFormed(post) end
+      end
+   end
+   
+   %%%Channel constraints
+   proc {FdpChannel Post}
+     W = {Record.width Post}
+   in
+	case W
+	of 2 then {FDP.channel2 Post.1 Post.2}
+	else
+	   raise malFormed(post) end
+	end
    end
 
 
