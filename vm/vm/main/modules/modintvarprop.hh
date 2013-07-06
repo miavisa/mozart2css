@@ -463,101 +463,97 @@ namespace mozart {
 	  Gecode::branch(home,getIntVarArgs(vm,x),bvart,bvalt); 
 	}
       };
-
-     class Element3: public Builtin<Element3>{
-  public:
-    Element3(): Builtin("element3") {}
-    
-    static void call(VM vm, In n, In x0, In x1){
-      assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
-      if (isIntSharedArray(vm,n) and IntVarLike(x0).isIntVarLike(vm) and IntVarLike(x1).isIntVarLike(vm)){
-	Gecode::element(home, getIntSharedArray(vm,n), IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm));
-	home.status();}
-      else if (isIntSharedArray(vm,n) and IntVarLike(x0).isIntVarLike(vm) and BoolVarLike(x1).isBoolVarLike(vm)){
-	Gecode::element(home, getIntSharedArray(vm,n), IntVarLike(x0).intVar(vm),BoolVarLike(x1).boolVar(vm));
-	home.status();}
-      else if (isIntSharedArray(vm,n) and IntVarLike(x0).isIntVarLike(vm) and x1.is<SmallInt>()){
-	nativeint val = x1.as<SmallInt>().value();
-	Gecode::element(home, getIntSharedArray(vm,n), IntVarLike(x0).intVar(vm),(int)(val));
-	home.status();}
-      else if (isIntVarArgs(vm,n) and IntVarLike(x0).isIntVarLike(vm) and IntVarLike(x1).isIntVarLike(vm)){
-	Gecode::element(home,getIntVarArgs(vm,n),IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm));
-	home.status();}
-      else if (isIntVarArgs(vm,n) and IntVarLike(x0).isIntVarLike(vm) and x1.is<SmallInt>()){
-	nativeint num = x1.as<SmallInt>().value();
-	Gecode::element(home,getIntVarArgs(vm,n),IntVarLike(x0).intVar(vm),(int)(num));
-	home.status();}
-      else if (isBoolVarArgs(vm,n) and IntVarLike(x0).isIntVarLike(vm) and BoolVarLike(x1).isBoolVarLike(vm)){
-	Gecode::element(home,getBoolVarArgs(vm,n),IntVarLike(x0).intVar(vm),BoolVarLike(x1).boolVar(vm));
-      home.status();}
-      else if (isBoolVarArgs(vm,n) and IntVarLike(x0).isIntVarLike(vm) and x1.is<SmallInt>()){
-	nativeint num = x1.as<SmallInt>().value();
-	Gecode::element(home,getBoolVarArgs(vm,n),IntVarLike(x0).intVar(vm),(int)(num));
-	home.status();}
-      else{
-	raiseTypeError(vm, ("Propagator posting element malformed"), n);}
-    }
-    
-  };
-
-  class Element6: public Builtin<Element6>{
-  public:
-    Element6(): Builtin("element6") {}
-    
-    static void call(VM vm, In a, In x, In w, In y, In h, In z){
-      assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
-      if (isIntSharedArray(vm,a) and IntVarLike(x).isIntVarLike(vm) and w.is<SmallInt>() and IntVarLike(y).isIntVarLike(vm) and h.is<SmallInt>() and IntVarLike(z).isIntVarLike(vm)){
-	std::cout<<"entre en element6-2"<<std::endl;
-	nativeint numw = w.as<SmallInt>().value();
-	nativeint numh = h.as<SmallInt>().value();
-	Gecode::element(home,getIntSharedArray(vm,a),IntVarLike(x).intVar(vm),(int)(numw),IntVarLike(y).intVar(vm),(int)(numh),IntVarLike(z).intVar(vm));
-	home.status();}
-      else if( isIntSharedArray(vm,a) and IntVarLike(x).isIntVarLike(vm) and w.is<SmallInt>() and IntVarLike(y).isIntVarLike(vm) and h.is<SmallInt>() and BoolVarLike(z).isBoolVarLike(vm)){
-	nativeint numw = w.as<SmallInt>().value();
-	nativeint numh = h.as<SmallInt>().value();
-	Gecode::element(home,getIntSharedArray(vm,a),IntVarLike(x).intVar(vm),(int)(numw),IntVarLike(y).intVar(vm),(int)(numh),BoolVarLike(z).boolVar(vm));
-	home.status();
-      }
-      else if (isIntVarArgs(vm,a) and IntVarLike(x).isIntVarLike(vm) and w.is<SmallInt>() and IntVarLike(y).isIntVarLike(vm) and h.is<SmallInt>() and IntVarLike(z).isIntVarLike(vm)){
-	nativeint numw = w.as<SmallInt>().value();
-	nativeint numh = h.as<SmallInt>().value();
-	Gecode::element(home,getIntVarArgs(vm,a),IntVarLike(x).intVar(vm),(int)(numw),IntVarLike(y).intVar(vm),(int)(numh),IntVarLike(z).intVar(vm));
-	home.status();}
-      else if( isBoolVarArgs(vm,a)  and IntVarLike(x).isIntVarLike(vm) and w.is<SmallInt>() and IntVarLike(y).isIntVarLike(vm) and h.is<SmallInt>() and BoolVarLike(z).isBoolVarLike(vm)){
-	nativeint numw = w.as<SmallInt>().value();
-	nativeint numh = h.as<SmallInt>().value();
-	Gecode::element(home,getBoolVarArgs(vm,a),IntVarLike(x).intVar(vm),(int)(numw),IntVarLike(y).intVar(vm),(int)(numh),BoolVarLike(z).boolVar(vm));
-	home.status();}
-      else{
-	raiseTypeError(vm, ("Propagator posting element malformed"), a);}
-    }
-  };
-
-  class Member2: public Builtin<Member2>{
-  public:
-    Member2(): Builtin("member2") {}
-    
-    static void call(VM vm,In x, In y){
-      assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
-      if(isIntVarArgs(vm,x)and IntVarLike(y).isIntVarLike(vm)){
-	Gecode::member(home,getIntVarArgs(vm,x),IntVarLike(y).intVar(vm));
-	home.status();
-      }
-      else if(isBoolVarArgs(vm,x)and BoolVarLike(y).isBoolVarLike(vm)){
-	std::cout<<"in member BoolVarArgs 2 Arguments"<<std::endl;
-	Gecode::member(home,getBoolVarArgs(vm,x),BoolVarLike(y).boolVar(vm));
-	home.status();
-      }
-      else{
+      
+      class Element3: public Builtin<Element3>{
+      public:
+	Element3(): Builtin("element3") {}
+	
+	static void call(VM vm, In n, In x0, In x1){
+	  assert(vm->getCurrentSpace()->hasConstraintSpace());
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  if (isIntSharedArray(vm,n) and IntVarLike(x0).isIntVarLike(vm) and IntVarLike(x1).isIntVarLike(vm)){
+	    Gecode::element(home, getIntSharedArray(vm,n), IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm));
+	  }
+	  else if (isIntSharedArray(vm,n) and IntVarLike(x0).isIntVarLike(vm) and BoolVarLike(x1).isBoolVarLike(vm)){
+	    Gecode::element(home, getIntSharedArray(vm,n), IntVarLike(x0).intVar(vm),BoolVarLike(x1).boolVar(vm));
+	  }
+	  else if (isIntSharedArray(vm,n) and IntVarLike(x0).isIntVarLike(vm) and x1.is<SmallInt>()){
+	    nativeint val = x1.as<SmallInt>().value();
+	    Gecode::element(home, getIntSharedArray(vm,n), IntVarLike(x0).intVar(vm),(int)(val));
+	  }
+	  else if (isIntVarArgs(vm,n) and IntVarLike(x0).isIntVarLike(vm) and IntVarLike(x1).isIntVarLike(vm)){
+	    Gecode::element(home,getIntVarArgs(vm,n),IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm));
+	  }
+	  else if (isIntVarArgs(vm,n) and IntVarLike(x0).isIntVarLike(vm) and x1.is<SmallInt>()){
+	    nativeint num = x1.as<SmallInt>().value();
+	    Gecode::element(home,getIntVarArgs(vm,n),IntVarLike(x0).intVar(vm),(int)(num));
+	  }
+	  else if (isBoolVarArgs(vm,n) and IntVarLike(x0).isIntVarLike(vm) and BoolVarLike(x1).isBoolVarLike(vm)){
+	    Gecode::element(home,getBoolVarArgs(vm,n),IntVarLike(x0).intVar(vm),BoolVarLike(x1).boolVar(vm));
+	  }
+	  else if (isBoolVarArgs(vm,n) and IntVarLike(x0).isIntVarLike(vm) and x1.is<SmallInt>()){
+	    nativeint num = x1.as<SmallInt>().value();
+	    Gecode::element(home,getBoolVarArgs(vm,n),IntVarLike(x0).intVar(vm),(int)(num));
+	  }
+	  else{
+	    raiseTypeError(vm, ("Propagator posting element malformed"), n);}
+	}
+	
+      };
+      
+      class Element6: public Builtin<Element6>{
+      public:
+	Element6(): Builtin("element6") {}
+	
+	static void call(VM vm, In a, In x, In w, In y, In h, In z){
+	  assert(vm->getCurrentSpace()->hasConstraintSpace());
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  if (isIntSharedArray(vm,a) and IntVarLike(x).isIntVarLike(vm) and w.is<SmallInt>() and IntVarLike(y).isIntVarLike(vm) and h.is<SmallInt>() and IntVarLike(z).isIntVarLike(vm)){
+	    nativeint numw = w.as<SmallInt>().value();
+	    nativeint numh = h.as<SmallInt>().value();
+	    Gecode::element(home,getIntSharedArray(vm,a),IntVarLike(x).intVar(vm),(int)(numw),IntVarLike(y).intVar(vm),(int)(numh),IntVarLike(z).intVar(vm));
+	  }
+	  else if( isIntSharedArray(vm,a) and IntVarLike(x).isIntVarLike(vm) and w.is<SmallInt>() and IntVarLike(y).isIntVarLike(vm) and h.is<SmallInt>() and BoolVarLike(z).isBoolVarLike(vm)){
+	    nativeint numw = w.as<SmallInt>().value();
+	    nativeint numh = h.as<SmallInt>().value();
+	    Gecode::element(home,getIntSharedArray(vm,a),IntVarLike(x).intVar(vm),(int)(numw),IntVarLike(y).intVar(vm),(int)(numh),BoolVarLike(z).boolVar(vm));
+	    
+	  }
+	  else if (isIntVarArgs(vm,a) and IntVarLike(x).isIntVarLike(vm) and w.is<SmallInt>() and IntVarLike(y).isIntVarLike(vm) and h.is<SmallInt>() and IntVarLike(z).isIntVarLike(vm)){
+	    nativeint numw = w.as<SmallInt>().value();
+	    nativeint numh = h.as<SmallInt>().value();
+	    Gecode::element(home,getIntVarArgs(vm,a),IntVarLike(x).intVar(vm),(int)(numw),IntVarLike(y).intVar(vm),(int)(numh),IntVarLike(z).intVar(vm));
+	  }
+	  else if( isBoolVarArgs(vm,a)  and IntVarLike(x).isIntVarLike(vm) and w.is<SmallInt>() and IntVarLike(y).isIntVarLike(vm) and h.is<SmallInt>() and BoolVarLike(z).isBoolVarLike(vm)){
+	    nativeint numw = w.as<SmallInt>().value();
+	    nativeint numh = h.as<SmallInt>().value();
+	    Gecode::element(home,getBoolVarArgs(vm,a),IntVarLike(x).intVar(vm),(int)(numw),IntVarLike(y).intVar(vm),(int)(numh),BoolVarLike(z).boolVar(vm));
+	  }
+	  else{
+	    raiseTypeError(vm, ("Propagator posting element malformed"), a);}
+	}
+      };
+      
+      class Member2: public Builtin<Member2>{
+      public:
+	Member2(): Builtin("member2") {}
+	
+	static void call(VM vm,In x, In y){
+	  assert(vm->getCurrentSpace()->hasConstraintSpace());
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  if(isIntVarArgs(vm,x)and IntVarLike(y).isIntVarLike(vm)){
+	    Gecode::member(home,getIntVarArgs(vm,x),IntVarLike(y).intVar(vm));
+	  }
+	  else if(isBoolVarArgs(vm,x)and BoolVarLike(y).isBoolVarLike(vm)){
+	    Gecode::member(home,getBoolVarArgs(vm,x),BoolVarLike(y).boolVar(vm));
+	  }
+	  else{
 	raiseTypeError(vm, ("Propagator posting member malformed"), x);
       }
-    }
-  };
-  
-  class Member3: public Builtin<Member3>{
+	}
+      };
+      
+      class Member3: public Builtin<Member3>{
   public:
     Member3(): Builtin("member3") {}
     
@@ -575,8 +571,8 @@ namespace mozart {
       }
     }
   };
-
-  class Sorted2: public Builtin<Sorted2>{
+      
+      class Sorted2: public Builtin<Sorted2>{
   public:
     Sorted2(): Builtin("sorted2") {}
     
@@ -585,14 +581,14 @@ namespace mozart {
       GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
       if ( isIntVarArgs(vm,x) and isIntVarArgs(vm,y)){
 	Gecode::sorted(home,getIntVarArgs(vm,x),getIntVarArgs(vm,y));
-	home.status();}
+      }
       else{
 	raiseTypeError(vm, ("Propagator posting sorted malformed"), x);
       }
     }	
   };
-
-  class Sorted3: public Builtin<Sorted3>{
+      
+      class Sorted3: public Builtin<Sorted3>{
   public:
     Sorted3(): Builtin("sorted3") {}
     
@@ -601,14 +597,14 @@ namespace mozart {
       GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
       if ( isIntVarArgs(vm,x) and isIntVarArgs(vm,y) and isIntVarArgs(vm,z)){
 	Gecode::sorted(home,getIntVarArgs(vm,x),getIntVarArgs(vm,y),getIntVarArgs(vm,z));
-	home.status();}
+      }
       else{
 	raiseTypeError(vm, ("Propagator posting sorted malformed"), x);
       }
     }	
   };
-
-  class Binpacking: public Builtin<Binpacking>{
+      
+      class Binpacking: public Builtin<Binpacking>{
   public:
     Binpacking(): Builtin("binpacking") {}
     
@@ -616,9 +612,7 @@ namespace mozart {
       assert(vm->getCurrentSpace()->hasConstraintSpace());
       GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
       if(isIntVarArgs(vm,l)and isIntVarArgs(vm,b) and isIntArgs(vm,s)){
-	std::cout<<"Im bp Sr!"<<std::endl;
 	Gecode::binpacking(home,getIntVarArgs(vm,l),getIntVarArgs(vm,b),getIntArgs(vm,s));
-	home.status();
       }
       else{
 	raiseTypeError(vm, ("Propagator posting binpacking malformed"), l);
@@ -636,15 +630,14 @@ namespace mozart {
       if(isIntVarArgs(vm,x)and isIntVarArgs(vm,y)){
 	std::cout<<"Im channel Sr!"<<std::endl;
 	Gecode::channel(home,getIntVarArgs(vm,x),getIntVarArgs(vm,y));
-	home.status();
-      }
+	}
       else{
 	raiseTypeError(vm,("Propagator posting channel malformed"), x);
       }
     }
   };
-  
-  class Cumulative5: public Builtin<Cumulative5>{
+      
+      class Cumulative5: public Builtin<Cumulative5>{
   public:
     Cumulative5(): Builtin("cumulative5") {}
     
@@ -654,8 +647,7 @@ namespace mozart {
       if(c.is<SmallInt>() and isIntVarArgs(vm,flex)and isIntArgs(vm,fix)and isIntArgs(vm,u)){//falta isTaskTypeArgs
 	nativeint val = c.as<SmallInt>().value();
 	Gecode::cumulative(home,(int)(val),getTaskTypeArgs(vm,t),getIntVarArgs(vm,flex),getIntArgs(vm,fix),getIntArgs(vm,u));
-	home.status();
-      }
+	}
       else{
 	raiseTypeError(vm,("Propagator posting cumulative malformed"), c);
       }
