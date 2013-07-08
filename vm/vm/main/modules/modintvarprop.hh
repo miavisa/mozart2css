@@ -311,7 +311,7 @@ namespace mozart {
 	  else if (isIntVarArgs(vm,x) and isIntSetArgs(vm,c)){
 	    Gecode::count(home,getIntVarArgs(vm,x),getIntSetArgs(vm,c));}
 	  else {
-	    raiseTypeError(vm, MOZART_STR("Propagator posting count malformed"), x);}
+	    raiseTypeError(vm,("Propagator posting count malformed"), x);}
 	}
       };
       
