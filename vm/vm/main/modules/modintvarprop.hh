@@ -95,15 +95,15 @@ namespace mozart {
 	  }
 	}
       };
-
+      
       class Mult: public Builtin<Mult> {
       public:
 	Mult(): Builtin("mult") {}
-    
+	
 	static void call(VM vm, In x0, In x1, In x2) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
 	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
-      
+	  
 	  if(IntVarLike(x0).isIntVarLike(vm) and IntVarLike(x1).isIntVarLike(vm) and IntVarLike(x2).isIntVarLike(vm)){
 	    Gecode::mult(home,IntVarLike(x0).intVar(vm),IntVarLike(x1).intVar(vm),IntVarLike(x2).intVar(vm));
 	  }else{
@@ -111,7 +111,7 @@ namespace mozart {
 	  }
 	}
       };
-  
+      
       class Sqr: public Builtin<Sqr> {
       public:
 	Sqr(): Builtin("sqr") {}
@@ -260,27 +260,69 @@ namespace mozart {
 	  }
 	}
       };
-
-      class Count: public Builtin<Count> {
+      
+      class Count4: public Builtin<Count4> {
       public:
-	Count(): Builtin("count") {}
-
+	Count4(): Builtin("count4") {}
+	
 	static void call(VM vm, In x, In n, In r, In m) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
-	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
-	  Gecode::IntRelType rt = atomToRelType(vm,r);
-	  Gecode::count(home,getIntVarArgs(vm,x),(int)(n.as<SmallInt>().value()),rt,(int)(m.as<SmallInt>().value()));
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  if ( isIntVarArgs(vm,x) and n.is<SmallInt>() and isAtomToRelType(vm,r) and m.is<SmallInt>()){
+	    Gecode::IntRelType rt = atomToRelType(vm,r);
+	    Gecode::count(home,getIntVarArgs(vm,x),(int)(n.as<SmallInt>().value()),rt,(int)(m.as<SmallInt>().value()));}
+	  else if (isIntVarArgs(vm,x) and isIntSet(vm,n) and isAtomToRelType(vm,r) and m.is<SmallInt>()){
+	    Gecode::IntRelType rt = atomToRelType(vm,r);
+	    Gecode::count(home,getIntVarArgs(vm,x),getIntSet(vm,n),rt,(int)(m.as<SmallInt>().value()));
+	  }
+	  else if ( isIntVarArgs(vm,x) and IntVarLike(n).isIntVarLike(vm) and isAtomToRelType(vm,r) and m.is<SmallInt>()){
+	    Gecode::IntRelType rt = atomToRelType(vm,r);
+	    Gecode::count(home,getIntVarArgs(vm,x),IntVarLike(n).intVar(vm),rt,(int)(m.as<SmallInt>().value()));}
+	  else if (isIntVarArgs(vm,x) and isIntArgs(vm,n) and isAtomToRelType(vm,r) and m.is<SmallInt>()){
+	    Gecode::IntRelType rt = atomToRelType(vm,r);
+	    Gecode::count(home,getIntVarArgs(vm,x),getIntArgs(vm,n),rt,(int)(m.as<SmallInt>().value()));}
+	  else if (isIntVarArgs(vm,x) and n.is<SmallInt>() and isAtomToRelType(vm,r) and IntVarLike(m).isIntVarLike(vm)){
+	    Gecode::IntRelType rt = atomToRelType(vm,r);
+	    Gecode::count(home,getIntVarArgs(vm,x),(int)(n.as<SmallInt>().value()),rt,IntVarLike(m).intVar(vm));}
+	  else if (isIntVarArgs(vm,x) and isIntSet(vm,n) and isAtomToRelType(vm,r) and IntVarLike(m).isIntVarLike(vm)){
+	    Gecode::IntRelType rt = atomToRelType(vm,r);
+	    Gecode::count(home,getIntVarArgs(vm,x), getIntSet(vm,n),rt,IntVarLike(m).intVar(vm));}
+	  else if (isIntVarArgs(vm,x) and IntVarLike(n).isIntVarLike(vm) and isAtomToRelType(vm,r) and IntVarLike(m).isIntVarLike(vm)){
+	    Gecode::IntRelType rt = atomToRelType(vm,r);
+	    Gecode::count(home,getIntVarArgs(vm,x), IntVarLike(n).intVar(vm),rt,IntVarLike(m).intVar(vm));}
+	  else if (isIntVarArgs(vm,x) and isIntArgs(vm,n) and isAtomToRelType(vm,r) and IntVarLike(m).isIntVarLike(vm)){
+	    Gecode::IntRelType rt = atomToRelType(vm,r);
+	    Gecode::count(home,getIntVarArgs(vm,x), getIntArgs(vm,n),rt,IntVarLike(m).intVar(vm));}
+	  else {
+	    raiseTypeError(vm,("Propagator posting count malformed"), x);}
 	}
       };
-
+      
+      class Count2: public Builtin<Count2> {
+      public:
+	Count2(): Builtin("count2") {}
+	
+	static void call(VM vm, In x, In c) {
+	  assert(vm->getCurrentSpace()->hasConstraintSpace());
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  if (isIntVarArgs(vm,x) and isIntVarArgs(vm,c)){
+	    Gecode::count(home,getIntVarArgs(vm,x),getIntVarArgs(vm,c));
+	  }
+	  else if (isIntVarArgs(vm,x) and isIntSetArgs(vm,c)){
+	    Gecode::count(home,getIntVarArgs(vm,x),getIntSetArgs(vm,c));}
+	  else {
+	    raiseTypeError(vm, MOZART_STR("Propagator posting count malformed"), x);}
+	}
+      };
+      
       class Rel2: public Builtin<Rel2> {
       public:
 	Rel2(): Builtin("rel2") {}
-
+	
 	static void call(VM vm, In x, In r) {
 	  assert(vm->getCurrentSpace()->hasConstraintSpace());
 	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace(true);
-      
+	  
 	  if(isIntVarArgs(vm,x) and isAtomToRelType(vm,r)){
 	    Gecode::IntRelType rt = atomToRelType(vm,r);
 	    Gecode::rel(home,getIntVarArgs(vm,x),rt);
@@ -289,7 +331,7 @@ namespace mozart {
 	  }
 	}
       };
-
+      
       class Rel3: public Builtin<Rel3> {
       public:
 	Rel3(): Builtin("rel3") {}
@@ -548,112 +590,137 @@ namespace mozart {
 	    Gecode::member(home,getBoolVarArgs(vm,x),BoolVarLike(y).boolVar(vm));
 	  }
 	  else{
-	raiseTypeError(vm, ("Propagator posting member malformed"), x);
-      }
+	    raiseTypeError(vm, ("Propagator posting member malformed"), x);
+	  }
 	}
       };
       
       class Member3: public Builtin<Member3>{
-  public:
-    Member3(): Builtin("member3") {}
-    
-    static void call(VM vm,In x, In y, In b){
-      assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
-      if(isIntVarArgs(vm,x)and IntVarLike(y).isIntVarLike(vm) and BoolVarLike(b).isBoolVarLike(vm)){
-	Gecode::member(home,getIntVarArgs(vm,x),IntVarLike(y).intVar(vm),BoolVarLike(b).boolVar(vm));
-      }
-      else if(isBoolVarArgs(vm,x)and BoolVarLike(y).isBoolVarLike(vm) and BoolVarLike(b).isBoolVarLike(vm)){
-	Gecode::member(home,getBoolVarArgs(vm,x),BoolVarLike(y).boolVar(vm),BoolVarLike(b).boolVar(vm));
-      }
-      else{
-	raiseTypeError(vm, ("Propagator posting member malformed"), x);
-      }
-    }
-  };
+      public:
+	Member3(): Builtin("member3") {}
+	
+	static void call(VM vm,In x, In y, In b){
+	  assert(vm->getCurrentSpace()->hasConstraintSpace());
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  if(isIntVarArgs(vm,x)and IntVarLike(y).isIntVarLike(vm) and BoolVarLike(b).isBoolVarLike(vm)){
+	    Gecode::member(home,getIntVarArgs(vm,x),IntVarLike(y).intVar(vm),BoolVarLike(b).boolVar(vm));
+	  }
+	  else if(isBoolVarArgs(vm,x)and BoolVarLike(y).isBoolVarLike(vm) and BoolVarLike(b).isBoolVarLike(vm)){
+	    Gecode::member(home,getBoolVarArgs(vm,x),BoolVarLike(y).boolVar(vm),BoolVarLike(b).boolVar(vm));
+	  }
+	  else{
+	    raiseTypeError(vm, ("Propagator posting member malformed"), x);
+	  }
+	}
+      };
       
       class Sorted2: public Builtin<Sorted2>{
-  public:
-    Sorted2(): Builtin("sorted2") {}
-    
-    static void call(VM vm, In x, In y){
-      assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
-      if ( isIntVarArgs(vm,x) and isIntVarArgs(vm,y)){
-	Gecode::sorted(home,getIntVarArgs(vm,x),getIntVarArgs(vm,y));
-      }
-      else{
-	raiseTypeError(vm, ("Propagator posting sorted malformed"), x);
-      }
-    }	
-  };
+      public:
+	Sorted2(): Builtin("sorted2") {}
+	
+	static void call(VM vm, In x, In y){
+	  assert(vm->getCurrentSpace()->hasConstraintSpace());
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  if ( isIntVarArgs(vm,x) and isIntVarArgs(vm,y)){
+	    Gecode::sorted(home,getIntVarArgs(vm,x),getIntVarArgs(vm,y));
+	  }
+	  else{
+	    raiseTypeError(vm, ("Propagator posting sorted malformed"), x);
+	  }
+	}	
+      };
       
       class Sorted3: public Builtin<Sorted3>{
-  public:
-    Sorted3(): Builtin("sorted3") {}
-    
-    static void call(VM vm, In x, In y, In z){
-      assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
-      if ( isIntVarArgs(vm,x) and isIntVarArgs(vm,y) and isIntVarArgs(vm,z)){
-	Gecode::sorted(home,getIntVarArgs(vm,x),getIntVarArgs(vm,y),getIntVarArgs(vm,z));
-      }
-      else{
-	raiseTypeError(vm, ("Propagator posting sorted malformed"), x);
-      }
-    }	
-  };
+      public:
+	Sorted3(): Builtin("sorted3") {}
+	
+	static void call(VM vm, In x, In y, In z){
+	  assert(vm->getCurrentSpace()->hasConstraintSpace());
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  if ( isIntVarArgs(vm,x) and isIntVarArgs(vm,y) and isIntVarArgs(vm,z)){
+	    Gecode::sorted(home,getIntVarArgs(vm,x),getIntVarArgs(vm,y),getIntVarArgs(vm,z));
+	  }
+	  else{
+	    raiseTypeError(vm, ("Propagator posting sorted malformed"), x);
+	  }
+	}	
+      };
       
       class Binpacking: public Builtin<Binpacking>{
-  public:
-    Binpacking(): Builtin("binpacking") {}
-    
-    static void call(VM vm,In l, In b, In s){
-      assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
-      if(isIntVarArgs(vm,l)and isIntVarArgs(vm,b) and isIntArgs(vm,s)){
-	Gecode::binpacking(home,getIntVarArgs(vm,l),getIntVarArgs(vm,b),getIntArgs(vm,s));
-      }
-      else{
-	raiseTypeError(vm, ("Propagator posting binpacking malformed"), l);
-      }
-    }
-  };
-
-  class Channel2: public Builtin<Channel2>{
-  public:
-    Channel2(): Builtin("channel2") {}
-    
-    static void call(VM vm,In x, In y){
-      assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
-      if(isIntVarArgs(vm,x)and isIntVarArgs(vm,y)){
-	std::cout<<"Im channel Sr!"<<std::endl;
-	Gecode::channel(home,getIntVarArgs(vm,x),getIntVarArgs(vm,y));
+      public:
+	Binpacking(): Builtin("binpacking") {}
+	
+	static void call(VM vm,In l, In b, In s){
+	  assert(vm->getCurrentSpace()->hasConstraintSpace());
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  if(isIntVarArgs(vm,l)and isIntVarArgs(vm,b) and isIntArgs(vm,s)){
+	    Gecode::binpacking(home,getIntVarArgs(vm,l),getIntVarArgs(vm,b),getIntArgs(vm,s));
+	  }
+	  else{
+	    raiseTypeError(vm, ("Propagator posting binpacking malformed"), l);
+	  }
 	}
-      else{
-	raiseTypeError(vm,("Propagator posting channel malformed"), x);
-      }
-    }
-  };
+      };
+      
+      class Channel2: public Builtin<Channel2>{
+      public:
+	Channel2(): Builtin("channel2") {}
+	
+	static void call(VM vm,In x, In y){
+	  assert(vm->getCurrentSpace()->hasConstraintSpace());
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  if(isIntVarArgs(vm,x)and isIntVarArgs(vm,y)){
+	    std::cout<<"Im channel Sr!"<<std::endl;
+	    Gecode::channel(home,getIntVarArgs(vm,x),getIntVarArgs(vm,y));
+	  }
+	  else{
+	    raiseTypeError(vm,("Propagator posting channel malformed"), x);
+	  }
+	}
+      };
       
       class Cumulative5: public Builtin<Cumulative5>{
-  public:
-    Cumulative5(): Builtin("cumulative5") {}
-    
-    static void call(VM vm,In c, In t, In flex, In fix, In u){
-      assert(vm->getCurrentSpace()->hasConstraintSpace());
-      GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
-      if(c.is<SmallInt>() and isIntVarArgs(vm,flex)and isIntArgs(vm,fix)and isIntArgs(vm,u)){//falta isTaskTypeArgs
-	nativeint val = c.as<SmallInt>().value();
-	Gecode::cumulative(home,(int)(val),getTaskTypeArgs(vm,t),getIntVarArgs(vm,flex),getIntArgs(vm,fix),getIntArgs(vm,u));
+      public:
+	Cumulative5(): Builtin("cumulative5") {}
+	
+	static void call(VM vm,In c, In t, In flex, In fix, In u){
+	  assert(vm->getCurrentSpace()->hasConstraintSpace());
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  if(c.is<SmallInt>() and isIntVarArgs(vm,flex)and isIntArgs(vm,fix)and isIntArgs(vm,u)){//falta isTaskTypeArgs
+	    nativeint val = c.as<SmallInt>().value();
+	    Gecode::cumulative(home,(int)(val),getTaskTypeArgs(vm,t),getIntVarArgs(vm,flex),getIntArgs(vm,fix),getIntArgs(vm,u));
+	  }
+	  else{
+	    raiseTypeError(vm,("Propagator posting cumulative malformed"), c);
+	  }
 	}
-      else{
-	raiseTypeError(vm,("Propagator posting cumulative malformed"), c);
-      }
-    }
-  };
-
+      };
+      
+      class Sequence5: public Builtin<Sequence5>{
+      public:
+	Sequence5(): Builtin("sequence5") {}
+	
+	static void call(VM vm,In x, In s, In q, In l, In u){
+	  assert(vm->getCurrentSpace()->hasConstraintSpace());
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  if( isIntVarArgs(vm,x) and isIntSet(vm,s) and q.is<SmallInt>() and l.is<SmallInt>() and u.is<SmallInt>()){
+	    nativeint numq = q.as<SmallInt>().value();
+	    nativeint numl = l.as<SmallInt>().value();
+	    nativeint numu = u.as<SmallInt>().value();
+	    Gecode::sequence(home,getIntVarArgs(vm,x),getIntSet(vm,s),(int)(numq),(int)(numl),(int)(numu));
+	  }
+	  else if (isBoolVarArgs(vm,x) and isIntSet(vm,s) and q.is<SmallInt>() and l.is<SmallInt>() and u.is<SmallInt>()){
+	    nativeint numq = q.as<SmallInt>().value();
+	    nativeint numl = l.as<SmallInt>().value();
+	    nativeint numu = u.as<SmallInt>().value();
+	    Gecode::sequence(home,getBoolVarArgs(vm,x),getIntSet(vm,s),(int)(numq),(int)(numl),(int)(numu));
+	  }
+	  else{
+	    raiseTypeError(vm,("Propagator posting sequence malformed"), x);
+	  }
+	}
+      };
+      
     }; // class ModIntVarProp
   } // namespace builtins
 } // namespace mozart

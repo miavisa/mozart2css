@@ -300,7 +300,7 @@ static Gecode::TaskType atomToTaskType(VM vm, In r) {
     }
     return Gecode::IntArgs(v);
   }
-
+  
   static bool isIntSet(VM vm, In x){
     bool v=true;
     if (x.is<Cons>()){
@@ -324,7 +324,7 @@ static Gecode::TaskType atomToTaskType(VM vm, In r) {
 	}else{
 	  v=false;
 	}
-	  
+	
 	UnstableNode utail = Reference::build(vm, tail);
 	RichNode rtail = utail;
 	if (!rtail.is<Cons>()){
@@ -338,13 +338,13 @@ static Gecode::TaskType atomToTaskType(VM vm, In r) {
     }
     return v;
   }
-
+  
   static Gecode::IntSet getIntSet(VM vm, In x){
-
+    
     if(!isIntSet(vm,x)){
       raiseTypeError(vm, ("Integer Arguments"), x);
     }
-
+    
     std::vector<int> v;
     if (x.is<Cons>()){
       StableNode* head=x.as<Cons>().getHead();
@@ -369,16 +369,16 @@ static Gecode::TaskType atomToTaskType(VM vm, In r) {
 	      v.push_back((int)(val));
 	    }
 	  }
-	  UnstableNode utail = Reference::build(vm, tail);
-	  RichNode rtail = utail;
-	  if (!rtail.is<Cons>()){
-	    break;
-	  }	  
-	  UnstableNode ncons = Reference::build(vm, tail);
-	  RichNode rncons = ncons;
-	  head=rncons.as<Cons>().getHead();
-	  tail=rncons.as<Cons>().getTail();	
-	} 
+	UnstableNode utail = Reference::build(vm, tail);
+	RichNode rtail = utail;
+	if (!rtail.is<Cons>()){
+	  break;
+	}	  
+	UnstableNode ncons = Reference::build(vm, tail);
+	RichNode rncons = ncons;
+	head=rncons.as<Cons>().getHead();
+	tail=rncons.as<Cons>().getTail();	
+      } 
       int pairs[v.size()/2][2];
       unsigned int i=0;
       unsigned int ii=0;
@@ -390,17 +390,47 @@ static Gecode::TaskType atomToTaskType(VM vm, In r) {
       }
       return Gecode::IntSet(pairs, v.size()/2);
     }
-          
+    
     return Gecode::IntSet();
   }
   
-  //Uncomment this when we use it in a propagator builtin. 
-  //Avoing compilation warning.
-  /*static Gecode::IntSetArgs getIntSetArgs(VM vm, In x){
+  static bool isIntSetArgs(VM vm, In x){
+    bool v =  true;
+    
+    assert(x.is<Cons>());
+    
+    if (x.is<Cons>()){
+      StableNode* head=x.as<Cons>().getHead();
+      StableNode* tail=x.as<Cons>().getTail();
+      while (true){
+    	UnstableNode uhead = Reference::build(vm, head);
+    	RichNode rhead = uhead;
+    	if(rhead.is<Cons>()){
+    	  assert(rhead.is<Cons>());
+	  v = true;
+	} 
+    	UnstableNode utail = Reference::build(vm, tail);
+    	RichNode rtail = utail;
+    	if (!rtail.is<Cons>()){
+    	  break;
+    	}	  
+    	UnstableNode ncons = Reference::build(vm, tail);
+    	RichNode rncons = ncons;
+    	head=rncons.as<Cons>().getHead();
+    	tail=rncons.as<Cons>().getTail();	
+      }
+    }
+    else{
+      v =  false;
+    }
+    return v;
+  }
+  
+  static Gecode::IntSetArgs getIntSetArgs(VM vm, In x){
     Gecode::IntSetArgs v;
     
     assert(x.is<Cons>());
-
+    
     if (x.is<Cons>()){
       StableNode* head=x.as<Cons>().getHead();
       StableNode* tail=x.as<Cons>().getTail();
@@ -425,18 +455,18 @@ static Gecode::TaskType atomToTaskType(VM vm, In r) {
       return v;
     }
     return v;
-    }*/
-
-	static bool isIntSharedArray(VM vm,In x){
+  }
+  
+  static bool isIntSharedArray(VM vm,In x){
     if(!isIntArgs(vm,x)){
-       return false;
-     }
-     else{
-       return true;
-     }
-   }
-   
-
+      return false;
+    }
+    else{
+      return true;
+    }
+  }
+  
+  
   static Gecode::IntSharedArray getIntSharedArray(VM vm,In x){
     
     if(!isIntSharedArray(vm,x)){
@@ -448,8 +478,8 @@ static Gecode::TaskType atomToTaskType(VM vm, In r) {
     }
     return Gecode::IntSharedArray();
   }
-
-
+  
+  
   static bool isBoolVarArgs(VM vm, In x){
     bool v=true;
     size_t width;
@@ -492,7 +522,7 @@ static Gecode::TaskType atomToTaskType(VM vm, In r) {
     }
     return v;
   }
-   
+  
   static Gecode::BoolVarArgs getBoolVarArgs(VM vm, In x){
     size_t width;
     
@@ -544,7 +574,7 @@ static Gecode::TaskType atomToTaskType(VM vm, In r) {
   
   static Gecode::TaskTypeArgs getTaskTypeArgs(VM vm, In x){
     size_t width;
-
+    
     //if(!isTasktypeArgs(vm,x)){ //This function is not implemented yet.
     // raiseTypeError(vm, MOZART_STR("Finite Domain Integer Arguments"), x);
     // }
@@ -590,9 +620,9 @@ static Gecode::TaskType atomToTaskType(VM vm, In r) {
       return v;
     }
   }
-
+  
 }
-
+  
 }
 
 #endif
