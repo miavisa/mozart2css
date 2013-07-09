@@ -721,6 +721,75 @@ namespace mozart {
 	}
       };
       
+      class Circuit1: public Builtin<Circuit1>{
+      public:
+	Circuit1(): Builtin("circuit1") {}
+	
+	static void call(VM vm, In x){
+	  assert(vm->getCurrentSpace()->hasConstraintSpace());
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  if (isIntVarArgs(vm,x)){
+	    Gecode::circuit(home,getIntVarArgs(vm,x));
+	  }
+	  else{
+	    raiseTypeError(vm,("Propagator posting circuit malformed"), x);
+	  }
+	}
+      };
+      
+      class Circuit2: public Builtin<Circuit2>{
+      public:
+	Circuit2(): Builtin("circuit2") {}
+	
+	static void call(VM vm, In o, In x){
+	  assert(vm->getCurrentSpace()->hasConstraintSpace());
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  if (o.is<SmallInt>() and isIntVarArgs(vm,x)){
+	    nativeint offset = o.as<SmallInt>().value();
+	    Gecode::circuit(home,(int)(offset),getIntVarArgs(vm,x));
+	  }
+	  else{
+	    raiseTypeError(vm,("Propagator posting circuit malformed"), x);
+	  }
+	}
+      };
+      
+      class Circuit3: public Builtin<Circuit3>{
+      public:
+	Circuit3(): Builtin("circuit3") {}
+	
+	static void call(VM vm, In c, In x, In z){
+	  assert(vm->getCurrentSpace()->hasConstraintSpace());
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  if (isIntArgs(vm,c) and isIntVarArgs(vm,x) and IntVarLike(z).isIntVarLike(vm)){
+	    Gecode::circuit(home,getIntArgs(vm,c),getIntVarArgs(vm,x),IntVarLike(z).intVar(vm));
+	  }
+	  else{
+	    raiseTypeError(vm,("Propagator posting circuit malformed"), x);
+	  }
+	}
+      };
+
+      class Circuit4: public Builtin<Circuit4>{
+      public:
+	Circuit4(): Builtin("circuit4") {}
+	
+	static void call(VM vm, In c, In x, In y,In z){
+	  assert(vm->getCurrentSpace()->hasConstraintSpace());
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  if (isIntArgs(vm,c) and isIntVarArgs(vm,x) and isIntVarArgs(vm,y) and IntVarLike(z).isIntVarLike(vm)){
+	    Gecode::circuit(home,getIntArgs(vm,c),getIntVarArgs(vm,x),getIntVarArgs(vm,y),IntVarLike(z).intVar(vm));
+	  }
+	  else if (isIntArgs(vm,c) and x.is<SmallInt>() and isIntVarArgs(vm,y) and IntVarLike(z).isIntVarLike(vm)){
+	    nativeint offset = x.as<SmallInt>().value();
+	    Gecode::circuit(home,getIntArgs(vm,c),(int)(offset),getIntVarArgs(vm,y),IntVarLike(z).intVar(vm));
+	  } 	  
+	  else{
+	    raiseTypeError(vm,("Propagator posting circuit malformed"), x);
+	  }
+	}
+      };
+      
     }; // class ModIntVarProp
   } // namespace builtins
 } // namespace mozart

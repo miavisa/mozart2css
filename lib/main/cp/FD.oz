@@ -167,6 +167,11 @@ export
 %    exactly:        FdpExactly
 %    element:        FdpElement
 
+%%% Graph Propagators
+
+    circuit:	   FdpCircuit
+%   path:	   FdpPath
+
 %    %% 0/1 Propagators
 %    conj:           FdpConj
 %    disj:           FdpDisj
@@ -340,8 +345,7 @@ define
      end
    end
 
-	%%% Element constraints
-   
+   %%% Element constraints
    proc {FdpElement Post}
      W = {Record.width Post}
    in
@@ -519,6 +523,22 @@ define
    	else
    	   raise malFormed(post) end
    	end
+   end
+
+   %%% Graph propagators
+   
+   proc {FdpCircuit Post}
+     W = {Record.width Post}
+   in
+	case W
+	of 1 then {FDP.circuit1 Post.1}
+	[] 2 then {FDP.circuit2 Post.1 Post.2}
+	[] 3 then {FDP.circuit3 Post.1 Post.2 Post.3}
+	[] 4 then {FDP.circuit4 Post.1 Post.2 Post.3 Post.4}
+	[] 5 then {FDP.circuit5 Post.1 Post.2 Post.3 Post.4 Post.5}
+	else
+	   raise malFormed(post) end
+	end
    end
 
    %%% Generic propagators
