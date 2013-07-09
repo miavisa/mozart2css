@@ -170,7 +170,7 @@ export
 %%% Graph Propagators
 
     circuit:	   FdpCircuit
-%   path:	   FdpPath
+    path:	   FdpPath
 
 %    %% 0/1 Propagators
 %    conj:           FdpConj
@@ -536,6 +536,20 @@ define
 	[] 3 then {FDP.circuit3 Post.1 Post.2 Post.3}
 	[] 4 then {FDP.circuit4 Post.1 Post.2 Post.3 Post.4}
 	[] 5 then {FDP.circuit5 Post.1 Post.2 Post.3 Post.4 Post.5}
+	else
+	   raise malFormed(post) end
+	end
+   end
+
+   proc {FdpPath Post}
+     W = {Record.width Post}
+   in
+	case W
+	of 3 then {FDP.path3 Post.1 Post.2 Post.3}
+	[] 4 then {FDP.path4 Post.1 Post.2 Post.3 Post.4}
+	[] 5 then {FDP.path5 Post.1 Post.2 Post.3 Post.4 Post.5}
+	[] 6 then {FDP.path6 Post.1 Post.2 Post.3 Post.4 Post.5 Post.6}
+	[] 7 then {FDP.path7 Post.1 Post.2 Post.3 Post.4 Post.5 Post.6 Post.7}
 	else
 	   raise malFormed(post) end
 	end

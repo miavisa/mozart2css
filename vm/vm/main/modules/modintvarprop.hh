@@ -790,6 +790,92 @@ namespace mozart {
 	}
       };
       
+      class Path3: public Builtin<Path3>{
+      public:
+	Path3(): Builtin("path3") {}
+	
+	static void call(VM vm, In x, In s, In e){
+	  assert(vm->getCurrentSpace()->hasConstraintSpace());
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  if (isIntVarArgs(vm,x) and IntVarLike(s).isIntVarLike(vm) and IntVarLike(e).isIntVarLike(vm)){
+	    Gecode::path(home,getIntVarArgs(vm,x),IntVarLike(s).intVar(vm),IntVarLike(e).intVar(vm));
+	  }
+	  else{
+	    raiseTypeError(vm,("Propagator posting path malformed"), x);
+	  }
+	}
+      };
+      
+      class Path4: public Builtin<Path4>{
+      public:
+	Path4(): Builtin("path4") {}
+	
+	static void call(VM vm, In o, In x, In s, In e){
+	  assert(vm->getCurrentSpace()->hasConstraintSpace());
+	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+	  if (o.is<SmallInt>() and isIntVarArgs(vm,x) and IntVarLike(s).isIntVarLike(vm) and IntVarLike(e).isIntVarLike(vm)){
+	    nativeint offset = o.as<SmallInt>().value();
+	    Gecode::path(home,(int)(offset),getIntVarArgs(vm,x),IntVarLike(s).intVar(vm),IntVarLike(e).intVar(vm));
+	  }
+	  else{
+	    raiseTypeError(vm,("Propagator posting path malformed"), x);
+	  }
+	}
+      };
+      
+      class Path5: public Builtin<Path5>{
+      public:
+      	Path5(): Builtin("path5") {}
+	
+      	static void call(VM vm, In c, In x, In s, In e, In z){
+      	  assert(vm->getCurrentSpace()->hasConstraintSpace());
+      	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      	  if (isIntArgs(vm,c) and isIntVarArgs(vm,x) and IntVarLike(s).isIntVarLike(vm) and IntVarLike(e).isIntVarLike(vm) and IntVarLike(z).isIntVarLike(vm)){
+      	    Gecode::path(home,getIntArgs(vm,c),getIntVarArgs(vm,x),IntVarLike(s).intVar(vm),IntVarLike(e).intVar(vm),IntVarLike(z).intVar(vm));
+      	  }
+      	  else{
+      	    raiseTypeError(vm,("Propagator posting path malformed"), x);
+      	  }
+      	}
+      };
+
+      class Path6: public Builtin<Path6>{
+      public:
+      	Path6(): Builtin("path6") {}
+	
+      	static void call(VM vm, In c, In x, In s, In y, In e, In z){
+      	  assert(vm->getCurrentSpace()->hasConstraintSpace());
+      	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      	  if (isIntArgs(vm,c) and isIntVarArgs(vm,x) and IntVarLike(s).isIntVarLike(vm) and IntVarLike(e).isIntVarLike(vm) and isIntVarArgs(vm,y) and IntVarLike(z).isIntVarLike(vm)){
+      	    Gecode::path(home,getIntArgs(vm,c),getIntVarArgs(vm,x),IntVarLike(s).intVar(vm),IntVarLike(e).intVar(vm),getIntVarArgs(vm,y),IntVarLike(z).intVar(vm));
+      	  }
+      	  else if (isIntArgs(vm,c) and y.is<SmallInt>() and IntVarLike(s).isIntVarLike(vm) and IntVarLike(e).isIntVarLike(vm) and isIntVarArgs(vm,y) and IntVarLike(z).isIntVarLike(vm)){
+      	    nativeint offset = y.as<SmallInt>().value();
+      	    Gecode::path(home,getIntArgs(vm,c),(int)(offset),getIntVarArgs(vm,x),IntVarLike(s).intVar(vm),IntVarLike(e).intVar(vm),IntVarLike(z).intVar(vm));
+      	  }
+      	  else{
+      	    raiseTypeError(vm,("Propagator posting path malformed"), x);
+      	  }
+      	}
+      };
+      
+      class Path7: public Builtin<Path7>{
+      public:
+      	Path7(): Builtin("path7") {}
+	
+      	static void call(VM vm, In c, In o, In x, In s, In e, In y, In z){
+      	  assert(vm->getCurrentSpace()->hasConstraintSpace());
+      	  GecodeSpace& home = vm->getCurrentSpace()->getCstSpace();
+      	  if (isIntArgs(vm,c) and o.is<SmallInt>() and isIntVarArgs(vm,x) and IntVarLike(s).isIntVarLike(vm) and IntVarLike(e).isIntVarLike(vm) and isIntVarArgs(vm,y) and IntVarLike(z).isIntVarLike(vm)){
+	    nativeint offset = o.as<SmallInt>().value();
+      	    Gecode::path(home,getIntArgs(vm,c),(int)(offset),getIntVarArgs(vm,x),IntVarLike(s).intVar(vm),IntVarLike(e).intVar(vm),getIntVarArgs(vm,z),IntVarLike(z).intVar(vm));
+      	  }
+      	  else{
+      	    raiseTypeError(vm,("Propagator posting path malformed"), x);
+      	  }
+      	}
+      };
+
     }; // class ModIntVarProp
   } // namespace builtins
 } // namespace mozart
