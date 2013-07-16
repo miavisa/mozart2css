@@ -129,7 +129,7 @@ export
 %    %% Generic Propagators
    domain:         FdDomain
    linear: 	   FdpLinear
-   count:          Fdpcount
+   count:          FdpCount
    member:	   FdpMember
    binpacking:     FdpBinpacking
    channel:        FdpChannel
@@ -576,12 +576,15 @@ define
 
    %%% Generic propagators
    
-   local
-      CountProp = FDP.count
+   proc {FdpCount Post}
+      W = {Record.width Post}
    in
-      proc {Fdpcount V VAL1 RT VAL2}
-	 {CountProp V VAL1 FdRelType.RT VAL2}
-      end
+        case W
+	of 2 then {FDP.count2 Post.1 Post.2}
+	[] 4 then {FDP.count4 Post.1 Post.2 Post.3 Post.4}
+	else
+	   raise malFormed(post) end
+	end
    end
 
    proc {FdpDistinct Post} 
