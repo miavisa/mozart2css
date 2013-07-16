@@ -169,8 +169,12 @@ export
 
 %%% Graph Propagators
 
-    circuit:	   FdpCircuit
-    path:	   FdpPath
+   circuit:	   FdpCircuit
+   path:	   FdpPath
+
+%%% Geometrical packing Propagator
+    
+   nooverlap:      FdpNooverlap
 
 %    %% 0/1 Propagators
 %    conj:           FdpConj
@@ -550,6 +554,21 @@ define
 	[] 5 then {FDP.path5 Post.1 Post.2 Post.3 Post.4 Post.5}
 	[] 6 then {FDP.path6 Post.1 Post.2 Post.3 Post.4 Post.5 Post.6}
 	[] 7 then {FDP.path7 Post.1 Post.2 Post.3 Post.4 Post.5 Post.6 Post.7}
+	else
+	   raise malFormed(post) end
+	end
+   end
+
+   %%% Geometrical packing constraints
+   
+   proc {FdpNooverlap Post}
+      W = {Record.width Post}
+   in
+        case W
+	of 4 then {FDP.nooverlap4 Post.1 Post.2 Post.3 Post.4}
+	[] 5 then {FDP.nooverlap5 Post.1 Post.2 Post.3 Post.4 Post.5}
+	[] 6 then {FDP.nooverlap6 Post.1 Post.2 Post.3 Post.4 Post.5 Post.6}
+	[] 7 then {FDP.nooverlap7 Post.1 Post.2 Post.3 Post.4 Post.5 Post.6 Post.7}
 	else
 	   raise malFormed(post) end
 	end
