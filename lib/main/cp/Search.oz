@@ -163,10 +163,8 @@ define
     fun {OneDFSGecode P}
       S
     in
-      {P _}
       S={Space.new P}
-      {Space.ask S _}
-      {Search.dfs S}
+      {SearchDFS S}
     end
 
     fun {OneDepth P MRD ?KP}
