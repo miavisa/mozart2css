@@ -15,20 +15,38 @@ class ModSearch: public Module {
 public:
   ModSearch(): Module("Search") {}
 
-  class DFS: public Builtin<DFS> {
+  class OneDFS: public Builtin<OneDFS> {
   public:
-    DFS(): Builtin("dfs") {}
+    OneDFS(): Builtin("oneDFS") {}
 
-      static void call(VM vm, In space, Out result) {
-      if(ConstraintSpace(space).isConstraintSpace(vm)) { 
+    static void call(VM vm, In space, Out result) {
+      if (ConstraintSpace(space).isConstraintSpace(vm)) { 
         GecodeSpace* gs = ConstraintSpace(space).constraintSpace(vm);
         Gecode::DFS<GecodeSpace> e(gs);
-        if(GecodeSpace *sol = e.next()) {
+        if (GecodeSpace *sol = e.next()) {
           ConstraintSpace(space).updateConstraintSpace(vm, sol);
           result = SpaceLike(space).cloneSpace(vm);
         }
         else
           result = build(vm, vm->coreatoms.nil);
+      }
+    }
+  };
+
+  class AllDFS: public Builtin<AllDFS> {
+  public:
+    AllDFS(): Builtin("allDFS") {}
+
+    static void call(VM vm, In space, Out result) {
+      if (ConstraintSpace(space).isConstraintSpace(vm)) {
+        GecodeSpace* gs = ConstraintSpace(space).constraintSpace(vm);
+        Gecode::DFS<GecodeSpace> e(gs);
+        result = build(vm, vm->coreatoms.nil);
+        while (GecodeSpace *sol = e.next()) {
+          UnstableNode temp = SpaceLike(space).cloneSpace(vm);
+          ConstraintSpace(temp).updateConstraintSpace(vm, sol);
+          result = buildCons(vm, temp, std::move(result));
+        }
       }
     }
   };
