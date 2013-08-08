@@ -66,7 +66,14 @@ prepare
 %    end
 
 define
-  SearchDFS = Search.dfs
+  %SearchDFS = Search.dfs
+
+  fun {SearchDFS S Ns}
+    case Ns
+    of one then {Search.oneDFS S}
+    [] all then {Search.allDFS S}
+    end
+  end
    
   fun {WrapP S}
     proc {$ X}
@@ -164,7 +171,7 @@ define
       S
     in
       S={Space.new P}
-      {SearchDFS S}
+      {SearchDFS S one}
     end
 
     fun {OneDepth P MRD ?KP}
