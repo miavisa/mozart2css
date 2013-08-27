@@ -41,10 +41,10 @@ require
 export
   dfs:    SearchDFS
   one:    OneModule
-%    all:      All
-%    allS:     AllS
-%    allP:     AllP
-%    best:     BestModule
+  all:    All
+  allS:   AllS
+  allP:   AllP
+  best:   BestModule
 %    object:   SearchObject
   base:   SearchBase
   gecode: SearchGecode
@@ -58,12 +58,12 @@ prepare
     end
   end
 
-%    %%
-%    %% Different wrappers for creation of output
-%    %%
-%    fun {WrapS S}
-%       S
-%    end
+  %%
+  %% Different wrappers for creation of output
+  %%
+  fun {WrapS S}
+     S
+  end
 
 define
   %SearchDFS = Search.dfs
@@ -96,14 +96,14 @@ define
     end
   end
 
-%    %%
-%    %% Injection of solution constraints for best solution search
-%    %%
-%    proc {Better S O SS}
-%       CS={Space.clone SS}
-%    in
-%       {Space.inject S proc {$ X} {O {Space.merge CS} X} end}
-%    end
+  %%
+  %% Injection of solution constraints for best solution search
+  %%
+  proc {Better S O SS}
+     CS={Space.clone SS}
+  in
+     {Space.inject S proc {$ X} {O {Space.merge CS} X} end}
+  end
 
   %%
   %% The one solution search module
@@ -125,46 +125,46 @@ define
     end
   end
 
-%    local
-%       fun {AltCopy KF I M S MRD}
-%          if I==M then
-%             {Space.commit1 S I}
-%             {OneDepthR KF S S nil MRD MRD}
-%          else C={Space.clone S} in
-%             {Space.commit1 C I}
-%             case {OneDepthR KF C S [I] 1 MRD}
-%             of nil then {AltCopy KF I+1 M S MRD}
-%             elseof O then O
-%             end
-%          end
-%       end
+  local
+    fun {AltCopy KF I M S MRD}
+      if I==M then
+         {Space.commit S I-1}
+         {OneDepthR KF S S nil MRD MRD}
+      else C={Space.clone S} in
+         {Space.commit C I-1}
+         case {OneDepthR KF C S [I] 1 MRD}
+         of nil then {AltCopy KF I+1 M S MRD}
+         elseof O then O
+         end
+      end
+    end
 
-%       fun {Alt KF I M S C As RD MRD}
-%          {Space.commit1 S I}
-%          if I==M then {OneDepthR KF S C I|As RD MRD}
-%          else
-%             case {OneDepthR KF S C I|As RD MRD}
-%             of nil then S={Recompute C As} in
-%                {Alt KF I+1 M S C As RD MRD}
-%             elseof O then O
-%             end
-%          end
-%       end
-%    in
-%       fun {OneDepthR KF S C As RD MRD}
-%          if {IsFree KF} then
-%             case {Space.ask S}
-%             of failed    then nil
-%             [] succeeded then S
-%             [] alternatives(M) then
-%                if RD==MRD then {AltCopy KF 1 M S MRD}
-%                else {Alt KF 1 M S C As RD+1 MRD}
-%                end
-%             end
-%          else nil
-%          end
-%       end
-%    end
+    fun {Alt KF I M S C As RD MRD}
+      {Space.commit S I-1}
+      if I==M then {OneDepthR KF S C I|As RD MRD}
+      else
+        case {OneDepthR KF S C I|As RD MRD}
+        of nil then S={Recompute C As} in
+          {Alt KF I+1 M S C As RD MRD}
+        elseof O then O
+        end
+      end
+    end
+  in
+    fun {OneDepthR KF S C As RD MRD}
+      if {IsFree KF} then
+        case {Space.ask S}
+        of failed    then nil
+        [] succeeded then S
+        [] alternatives(M) then
+          if RD==MRD then {AltCopy KF 1 M S MRD}
+          else {Alt KF 1 M S C As RD+1 MRD}
+          end
+        end
+      else nil
+      end
+    end
+  end
 
   local
     fun {OneDFSGecode P}
@@ -178,7 +178,7 @@ define
       KF={NewKiller ?KP} S={Space.new P}
     in
       if MRD==1 then {OneDepthNR KF S}
-      else nil %{OneDepthR KF S S nil MRD MRD}
+      else {OneDepthR KF S S nil MRD MRD}
       end
     end
 
@@ -224,15 +224,15 @@ define
         end
       end
 
-%          fun {OneIterR KF S CD MRD}
-%             if {IsFree KF} then C={Space.clone S} in
-%                case {OneBoundR KF C C nil CD MRD MRD nil}
-%                of cut then {OneIterR KF S CD+1 MRD}
-%                elseof O then O
-%                end
-%             else nil
-%             end
-%          end
+      fun {OneIterR KF S CD MRD}
+         if {IsFree KF} then C={Space.clone S} in
+            case {OneBoundR KF C C nil CD MRD MRD nil}
+            of cut then {OneIterR KF S CD+1 MRD}
+            elseof O then O
+            end
+         else nil
+         end
+      end
     in
 
       fun {OneBound P MD MRD ?KP}
@@ -241,9 +241,9 @@ define
         {OneBoundR {NewKiller ?KP} S S nil MD MRD MRD nil}
       end
 
-%          fun {OneIter P MRD ?KP}
-%             {OneIterR {NewKiller ?KP} {Space.new P} 1 MRD}
-%          end
+      fun {OneIter P MRD ?KP}
+        {OneIterR {NewKiller ?KP} {Space.new P} 1 MRD}
+      end
 
     end
 
@@ -340,24 +340,24 @@ define
                                   end
                                 end
 
-%                       iter:     fun {$ P MRD ?KP}
-%                                    case {OneIter P MRD ?KP}
-%                                    of nil then nil
-%                                    elseof S then [{Space.merge S}]
-%                                    end
-%                                 end
-%                       iterP:    fun {$ P MRD ?KP}
-%                                    case {OneIter P MRD ?KP}
-%                                    of nil then nil
-%                                    elseof S then [{WrapP S}]
-%                                    end
-%                                 end
-%                       iterS:    fun {$ P MRD ?KP}
-%                                    case {OneIter P MRD ?KP}
-%                                    of nil then nil
-%                                    elseof S then [S]
-%                                    end
-%                                 end
+                   iter:        fun {$ P MRD ?KP}
+                                  case {OneIter P MRD ?KP}
+                                  of nil then nil
+                                  elseof S then [{Space.merge S}]
+                                  end
+                                end
+                   iterP:       fun {$ P MRD ?KP}
+                                  case {OneIter P MRD ?KP}
+                                  of nil then nil
+                                  elseof S then [{WrapP S}]
+                                  end
+                                end
+                   iterS:       fun {$ P MRD ?KP}
+                                  case {OneIter P MRD ?KP}
+                                  of nil then nil
+                                  elseof S then [S]
+                                  end
+                                end
 
 %                       lds:      fun {$ P D ?KP}
 %                                    try {LDS P D ?KP} nil
@@ -381,246 +381,246 @@ define
 
   end
 
-%    %%
-%    %% The all solution search module
-%    %%
-%    local
+  %%
+  %% The all solution search module
+  %%
+  local
 
-%       proc {AllNR KF S W Or Os}
-%          if {IsFree KF} then
-%             case {Space.ask S}
-%             of failed then Os=Or
-%             [] succeeded then Os={W S}|Or
-%             [] alternatives(N) then C={Space.clone S} Ot in
-%                {Space.commit1 S 1} {Space.commit2 C 2 N}
-%                Os={AllNR KF S W Ot}
-%                Ot={AllNR KF C W Or}
-%             end
-%          else Os=Or
-%          end
-%       end
+    proc {AllNR KF S W Or Os}
+      if {IsFree KF} then
+        case {Space.ask S}
+        of failed then Os=Or
+        [] succeeded then Os={W S}|Or
+        [] alternatives(N) then C={Space.clone S} Ot in
+          {Space.commit S 0} {Space.commit C 1}
+          Os={AllNR KF S W Ot}
+          Ot={AllNR KF C W Or}
+        end
+      else Os=Or
+      end
+    end
 
-%       local
-%          proc {AltCopy KF I M S MRD W Or Os}
-%             if I==M then
-%                {Space.commit1 S I}
-%                {AllR KF S S nil MRD MRD W Or Os}
-%             else C={Space.clone S} Ot in
-%                {Space.commit1 C I}
-%                Os={AllR KF C S [I] 1 MRD W Ot}
-%                Ot={AltCopy KF I+1 M S MRD W Or}
-%             end
-%          end
+    local
+      proc {AltCopy KF I M S MRD W Or Os}
+        if I==M then
+          {Space.commit S I-1}
+          {AllR KF S S nil MRD MRD W Or Os}
+        else C={Space.clone S} Ot in
+          {Space.commit C I-1}
+          Os={AllR KF C S [I] 1 MRD W Ot}
+          Ot={AltCopy KF I+1 M S MRD W Or}
+        end
+      end
 
-%          proc {Alt KF I M S C As RD MRD W Or Os}
-%             {Space.commit1 S I}
-%             if I==M then
-%                {AllR KF S C I|As RD MRD W Or Os}
-%             else Ot NewS={Recompute C As} in
-%                Os={AllR KF S C I|As RD MRD W Ot}
-%                Ot={Alt KF I+1 M NewS C As RD MRD W Or}
-%             end
-%          end
-%       in
-%          fun {AllR KF S C As RD MRD W Or}
-%             if {IsFree KF} then
-%                case {Space.ask S}
-%                of failed    then Or
-%                [] succeeded then {W S}|Or
-%                [] alternatives(M) then
-%                   if RD==MRD then {AltCopy KF 1 M S MRD W Or}
-%                   else {Alt KF 1 M S C As RD+1 MRD W Or}
-%                   end
-%                end
-%             else Or
-%             end
-%          end
-%       end
-%    in
-%       fun {All P MRD ?KP}
-%          KF={NewKiller ?KP} S={Space.new P}
-%       in
-%          if MRD==1 then {AllNR KF S Space.merge nil}
-%          else {AllR KF S S nil MRD MRD Space.merge nil}
-%          end
-%       end
+      proc {Alt KF I M S C As RD MRD W Or Os}
+        {Space.commit1 S I}
+        if I==M then
+          {AllR KF S C I|As RD MRD W Or Os}
+        else Ot NewS={Recompute C As} in
+          Os={AllR KF S C I|As RD MRD W Ot}
+          Ot={Alt KF I+1 M NewS C As RD MRD W Or}
+        end
+      end
+    in
+      fun {AllR KF S C As RD MRD W Or}
+        if {IsFree KF} then
+          case {Space.ask S}
+          of failed    then Or
+          [] succeeded then {W S}|Or
+          [] alternatives(M) then
+            if RD==MRD then {AltCopy KF 1 M S MRD W Or}
+            else {Alt KF 1 M S C As RD+1 MRD W Or}
+            end
+          end
+        else Or
+        end
+      end
+    end
+  in
+    fun {All P MRD ?KP}
+      KF={NewKiller ?KP} S={Space.new P}
+    in
+      if MRD==1 then {AllNR KF S Space.merge nil}
+      else {AllR KF S S nil MRD MRD Space.merge nil}
+      end
+    end
 
-%       fun {AllS P MRD ?KP}
-%          KF={NewKiller ?KP} S={Space.new P}
-%       in
-%          if MRD==1 then {AllNR KF S WrapS nil}
-%          else {AllR KF S S nil MRD MRD WrapS nil}
-%          end
-%       end
+    fun {AllS P MRD ?KP}
+      KF={NewKiller ?KP} S={Space.new P}
+    in
+      if MRD==1 then {AllNR KF S WrapS nil}
+      else {AllR KF S S nil MRD MRD WrapS nil}
+      end
+    end
 
-%       fun {AllP P MRD ?KP}
-%          KF={NewKiller ?KP} S={Space.new P}
-%       in
-%          if MRD==1 then {AllNR KF S WrapP nil}
-%          else {AllR KF S S nil MRD MRD WrapP nil}
-%          end
-%       end
-%    end
-
-
-%    %%
-%    %% The best solution search module
-%    %%
-
-%    local
-
-%       local
-%          fun {BABNR KF S O SS}
-%             if {IsFree KF} then
-%                case {Space.ask S}
-%                of failed then SS
-%                [] succeeded then S
-%                [] alternatives(N) then C={Space.clone S} NewSS in
-%                   {Space.commit1 S 1} {Space.commit2 C 2 N}
-%                   NewSS={BABNR KF S O SS}
-%                   if SS==NewSS then {BABNR KF C O SS}
-%                   elseif NewSS==nil then nil
-%                   else {Better C O NewSS} {BABNR KF C O NewSS}
-%                   end
-%                end
-%             else nil
-%             end
-%          end
-
-%          local
-%             fun {AltCopy KF I M S MRD O SS}
-%                if I==M then
-%                   {Space.commit1 S I}
-%                   {BABR KF S S nil MRD MRD O SS}
-%                else C={Space.clone S} NewSS in
-%                   {Space.commit1 C I}
-%                   NewSS = {BABR KF C S [I] 1 MRD O SS}
-%                   if NewSS==SS then
-%                      {AltCopy KF I+1 M S MRD O SS}
-%                   elseif NewSS==nil then nil
-%                   else
-%                      {Space.commit2 S I+1 M}
-%                      {Better S O NewSS}
-%                      {BABR KF S S nil MRD MRD O NewSS}
-%                   end
-%                end
-%             end
-
-%             fun {Alt KF I M S C As RD MRD O SS}
-%                {Space.commit1 S I}
-%                if I==M then
-%                   {BABR KF S C I|As RD MRD O SS}
-%                else
-%                   NewSS = {BABR KF S C I|As RD MRD O SS}
-%                in
-%                   if NewSS==SS then
-%                      {Alt KF I+1 M {Recompute C As} C As RD MRD O SS}
-%                   elseif NewSS==nil then nil
-%                   else NewS={Recompute C As} in
-%                      {Space.commit2 NewS I+1 M}
-%                      {Better NewS O NewSS}
-%                      {BABR KF NewS NewS nil MRD MRD O NewSS}
-%                   end
-%                end
-%             end
-%          in
-%             fun {BABR KF S C As RD MRD O SS}
-%                if {IsFree KF} then
-%                   case {Space.ask S}
-%                   of failed    then SS
-%                   [] succeeded then S
-%                   [] alternatives(M) then
-%                      if RD==MRD then {AltCopy KF 1 M S MRD O SS}
-%                      else {Alt KF 1 M S C As RD+1 MRD O SS}
-%                      end
-%                   end
-%                else nil
-%                end
-%             end
-%          end
-
-%       in
-%          fun {BestBAB P O MRD ?KP}
-%             KF={NewKiller ?KP} S={Space.new P}
-%          in
-%             if MRD==1 then {BABNR KF S O nil}
-%             else {BABR KF S S nil MRD MRD O nil}
-%             end
-%          end
-%       end
-
-%       local
-%          fun {RestartNR KF S O PS}
-%             if {IsFree KF} then C={Space.clone S} in
-%                case {OneDepthNR KF S}
-%                of nil then PS
-%                elseof S then {Better C O S} {RestartNR KF C O S}
-%                end
-%             else nil
-%             end
-%          end
-
-%          fun {RestartR KF S O PS MRD}
-%             if {IsFree KF} then C={Space.clone S} in
-%                case {OneDepthR KF S S nil MRD MRD}
-%                of nil then PS
-%                elseof S then {Better C O S} {RestartR KF C O S MRD}
-%                end
-%             else nil
-%             end
-%          end
-%       in
-%          fun {BestRestart P O MRD ?KP}
-%             KF={NewKiller ?KP} S={Space.new P}
-%          in
-%             if MRD==1 then {RestartNR KF S O nil}
-%             else {RestartR KF S O nil MRD}
-%             end
-%          end
-%       end
+    fun {AllP P MRD ?KP}
+      KF={NewKiller ?KP} S={Space.new P}
+    in
+      if MRD==1 then {AllNR KF S WrapP nil}
+      else {AllR KF S S nil MRD MRD WrapP nil}
+      end
+    end
+  end
 
 
-%    in
+  %%
+  %% The best solution search module
+  %%
 
-%       BestModule = best(bab:      fun {$ P O MRD ?KP}
-%                                      case {BestBAB P O MRD ?KP}
-%                                      of nil then nil
-%                                      elseof S then [{Space.merge S}]
-%                                      end
-%                                   end
-%                         babP:     fun {$ P O MRD ?KP}
-%                                      case {BestBAB P O MRD ?KP}
-%                                      of nil then nil
-%                                      elseof S then [{WrapP S}]
-%                                      end
-%                                   end
-%                         babS:     fun {$ P O MRD ?KP}
-%                                      case {BestBAB P O MRD ?KP}
-%                                      of nil then nil
-%                                      elseof S then [S]
-%                                      end
-%                                   end
+  local
 
-%                         restart:  fun {$ P O MRD ?KP}
-%                                      case {BestRestart P O MRD ?KP}
-%                                      of nil then nil
-%                                      elseof S then [{Space.merge S}]
-%                                      end
-%                                   end
-%                         restartP: fun {$ P O MRD ?KP}
-%                                      case {BestRestart P O MRD ?KP}
-%                                      of nil then nil
-%                                      elseof S then [{WrapP S}]
-%                                      end
-%                                   end
-%                         restartS: fun {$ P O MRD ?KP}
-%                                      case {BestRestart P O MRD ?KP}
-%                                      of nil then nil
-%                                      elseof S then [S]
-%                                      end
-%                                   end)
+    local
+      fun {BABNR KF S O SS}
+        if {IsFree KF} then
+          case {Space.ask S}
+          of failed then SS
+          [] succeeded then S
+          [] alternatives(N) then C={Space.clone S} NewSS in
+            {Space.commit S 0} {Space.commit C 1}
+            NewSS={BABNR KF S O SS}
+            if SS==NewSS then {BABNR KF C O SS}
+            elseif NewSS==nil then nil
+            else {Better C O NewSS} {BABNR KF C O NewSS}
+            end
+          end
+        else nil
+        end
+      end
 
-%    end
+      local
+        fun {AltCopy KF I M S MRD O SS}
+          if I==M then
+            {Space.commit1 S I}
+            {BABR KF S S nil MRD MRD O SS}
+          else C={Space.clone S} NewSS in
+            {Space.commit1 C I}
+            NewSS = {BABR KF C S [I] 1 MRD O SS}
+            if NewSS==SS then
+              {AltCopy KF I+1 M S MRD O SS}
+            elseif NewSS==nil then nil
+            else
+              {Space.commit2 S I+1 M}
+              {Better S O NewSS}
+              {BABR KF S S nil MRD MRD O NewSS}
+            end
+          end
+        end
+
+      fun {Alt KF I M S C As RD MRD O SS}
+        {Space.commit1 S I}
+        if I==M then
+          {BABR KF S C I|As RD MRD O SS}
+        else
+          NewSS = {BABR KF S C I|As RD MRD O SS}
+        in
+          if NewSS==SS then
+            {Alt KF I+1 M {Recompute C As} C As RD MRD O SS}
+          elseif NewSS==nil then nil
+          else NewS={Recompute C As} in
+            {Space.commit2 NewS I+1 M}
+            {Better NewS O NewSS}
+            {BABR KF NewS NewS nil MRD MRD O NewSS}
+          end
+        end
+      end
+      in
+        fun {BABR KF S C As RD MRD O SS}
+          if {IsFree KF} then
+            case {Space.ask S}
+            of failed    then SS
+            [] succeeded then S
+            [] alternatives(M) then
+              if RD==MRD then {AltCopy KF 1 M S MRD O SS}
+              else {Alt KF 1 M S C As RD+1 MRD O SS}
+              end
+            end
+          else nil
+          end
+        end
+      end
+
+    in
+      fun {BestBAB P O MRD ?KP}
+        KF={NewKiller ?KP} S={Space.new P}
+      in
+        if MRD==1 then {BABNR KF S O nil}
+        else {BABR KF S S nil MRD MRD O nil}
+        end
+      end
+    end
+
+    local
+      fun {RestartNR KF S O PS}
+        if {IsFree KF} then C={Space.clone S} in
+          case {OneDepthNR KF S}
+          of nil then PS
+          elseof S then {Better C O S} {RestartNR KF C O S}
+          end
+        else nil
+        end
+      end
+
+      fun {RestartR KF S O PS MRD}
+        if {IsFree KF} then C={Space.clone S} in
+          case {OneDepthR KF S S nil MRD MRD}
+          of nil then PS
+          elseof S then {Better C O S} {RestartR KF C O S MRD}
+          end
+        else nil
+        end
+      end
+    in
+      fun {BestRestart P O MRD ?KP}
+        KF={NewKiller ?KP} S={Space.new P}
+      in
+        if MRD==1 then {RestartNR KF S O nil}
+        else {RestartR KF S O nil MRD}
+        end
+      end
+    end
+
+  in
+
+    BestModule = best(bab:      fun {$ P O MRD ?KP}
+                                  case {BestBAB P O MRD ?KP}
+                                  of nil then nil
+                                  elseof S then [{Space.merge S}]
+                                  end
+                                end
+                      babP:     fun {$ P O MRD ?KP}
+                                  case {BestBAB P O MRD ?KP}
+                                  of nil then nil
+                                  elseof S then [{WrapP S}]
+                                  end
+                                end
+                      babS:     fun {$ P O MRD ?KP}
+                                  case {BestBAB P O MRD ?KP}
+                                  of nil then nil
+                                  elseof S then [S]
+                                  end
+                                end
+
+                      restart:  fun {$ P O MRD ?KP}
+                                  case {BestRestart P O MRD ?KP}
+                                  of nil then nil
+                                  elseof S then [{Space.merge S}]
+                                  end
+                                end
+                      restartP: fun {$ P O MRD ?KP}
+                                  case {BestRestart P O MRD ?KP}
+                                  of nil then nil
+                                  elseof S then [{WrapP S}]
+                                  end
+                                end
+                      restartS: fun {$ P O MRD ?KP}
+                                  case {BestRestart P O MRD ?KP}
+                                  of nil then nil
+                                  elseof S then [S]
+                                  end
+                                end
+                     )
+
+  end
 
 %    local
 
@@ -861,17 +861,17 @@ define
     {OneModule.depth P 1 _}
   end
 
-%    fun {SearchAll P}
-%       {All P 1 _}
-%    end
+  fun {SearchAll P}
+    {All P 1 _}
+  end
 
-%    fun {SearchBest P O}
-%       {BestModule.bab P O 1 _}
-%    end
+  fun {SearchBest P O}
+     {BestModule.bab P O 1 _}
+  end
 
   SearchBase = base(one:  SearchOne
-%                   all:  SearchAll
-%                   best: SearchBest
+                    all:  SearchAll
+                    best: SearchBest
                    )
 
   SearchGecode = gecode(one: SearchGOne)
