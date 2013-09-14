@@ -267,6 +267,12 @@ void ReifiedSpace::injectSpace(RichNode self, VM vm, RichNode callable) {
   space->inject(vm, callable);
 }
 
+void ReifiedSpace::waitStableSpace(RichNode self, VM vm) {
+  Space* space = getSpace();
+  RichNode statusVar = *space->getStatusVar();
+  patternmatching::internal::waitForIfTransient(vm, statusVar);
+}
+
 #ifdef VM_HAS_CSS
   void ReifiedSpace::info(RichNode self, VM vm) {
     Space* space = getSpace();
@@ -327,6 +333,10 @@ void FailedSpace::injectSpace(VM vm, RichNode callable) {
   // nothing to do
 }
 
+void FailedSpace::waitStableSpace(VM vm) {
+  // nothing to do
+}
+
 #ifdef VM_HAS_CSS
   void FailedSpace::info(VM vm) {
     // nothing to do                                                                                                                                            
@@ -367,6 +377,10 @@ void MergedSpace::killSpace(VM vm) {
 
 void MergedSpace::injectSpace(VM vm, RichNode callable) {
   raise(vm, vm->coreatoms.spaceMerged);
+}
+
+void MergedSpace::waitStableSpace(VM vm) {
+  // nothing to do
 }
 
 #ifdef VM_HAS_CSS

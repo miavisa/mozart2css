@@ -659,7 +659,11 @@ struct Interface<SpaceLike>:
 
   void injectSpace(RichNode self, VM vm, RichNode callable) {
     raiseTypeError(vm, "Space", self);
-   }
+  }
+
+  void waitStableSpace(RichNode self, VM vm) {
+    raiseTypeError(vm, "Space", self);
+  }
 
 #ifdef VM_HAS_CSS
   void info(RichNode self, VM vm) {

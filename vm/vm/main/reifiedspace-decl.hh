@@ -80,8 +80,11 @@ public:
   inline
   void killSpace(RichNode self, VM vm);
 
-inline
+  inline
   void injectSpace(RichNode self, VM vm, RichNode callable);
+
+  inline
+  void waitStableSpace(RichNode self, VM vm);
 
 #ifdef VM_HAS_CSS
   inline
@@ -155,6 +158,9 @@ public:
   inline
   void injectSpace(VM vm, RichNode callable);
 
+  inline
+  void waitStableSpace(VM vm);
+
 #ifdef VM_HAS_CSS
   inline
   void info(VM vm);
@@ -212,6 +218,9 @@ public:
 
   inline
   void injectSpace(VM vm, RichNode callable);
+
+  inline
+  void waitStableSpace(VM vm);
 
 #ifdef VM_HAS_CSS
   inline
