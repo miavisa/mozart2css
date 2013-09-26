@@ -20,6 +20,7 @@ public:
     OneDFS(): Builtin("oneDFS") {}
 
     static void call(VM vm, In space, Out result) {
+      SpaceLike(space).waitStableSpace(vm);
       if (ConstraintSpace(space).isConstraintSpace(vm)) { 
         GecodeSpace* gs = ConstraintSpace(space).constraintSpace(vm);
         Gecode::DFS<GecodeSpace> e(gs);
@@ -38,6 +39,7 @@ public:
     AllDFS(): Builtin("allDFS") {}
 
     static void call(VM vm, In space, Out result) {
+      SpaceLike(space).waitStableSpace(vm);
       if (ConstraintSpace(space).isConstraintSpace(vm)) {
         GecodeSpace* gs = ConstraintSpace(space).constraintSpace(vm);
         Gecode::DFS<GecodeSpace> e(gs);
