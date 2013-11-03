@@ -434,6 +434,7 @@ private:
 
   int threadCount;
   int cascadedRunnableThreadCount;
+  int suspendedThread;
 };
 
 }

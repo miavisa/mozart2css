@@ -176,6 +176,7 @@ void Space::constructor(VM vm, bool isTopLevel, Space* parent) {
 
   threadCount = 0;
   cascadedRunnableThreadCount = 0;
+  suspendedThread = 0;
 
 #ifdef VM_HAS_CSS
   _cstSpace = nullptr;
@@ -467,6 +468,7 @@ void Space::restoreAfterGR() {
 
 void Space::notifyThreadCreated() {
   incThreadCount();
+  suspendedThread++;
 }
 
 void Space::notifyThreadTerminated() {
@@ -481,13 +483,17 @@ void Space::notifyThreadTerminated() {
 }
 
 void Space::notifyThreadResumed() {
-  if (!isTopLevel())
+  if (!isTopLevel()) {
     incRunnableThreadCount();
+    suspendedThread--;
+  }
 }
 
 void Space::notifyThreadSuspended() {
-  if (!isTopLevel())
+  if (!isTopLevel()) {
     decRunnableThreadCount();
+    suspendedThread++;
+  }
 }
 
 bool Space::isStable() {
@@ -495,6 +501,9 @@ bool Space::isStable() {
     return false;
 
   if (!trail.empty())
+    return false;
+
+  if (suspendedThread > 0)
     return false;
 
   // TODO Check suspension list
