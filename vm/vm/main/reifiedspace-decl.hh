@@ -91,6 +91,9 @@ public:
   void info(RichNode self, VM vm);
 
   inline
+  UnstableNode dataMergeSpace(RichNode self, VM vm);
+
+  inline
   bool isConstraintSpace(RichNode self, VM vm);
 
   GecodeSpace* constraintSpace(RichNode self, VM vm) {
@@ -164,6 +167,9 @@ public:
 #ifdef VM_HAS_CSS
   inline
   void info(VM vm);
+
+  inline
+  UnstableNode dataMergeSpace(VM vm);
 #endif
 };
 
@@ -225,6 +231,9 @@ public:
 #ifdef VM_HAS_CSS
   inline
   void info(VM vm);
+
+  inline
+  UnstableNode dataMergeSpace(VM vm);
 #endif
 };
 

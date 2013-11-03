@@ -195,28 +195,8 @@ void ReifiedSpace::commitSpace(RichNode self, VM vm, RichNode value) {
     GecodeSpace& home = space->getCstSpace(true);
     if(home.branchers()!=0){
       nativeint alt= getArgument<nativeint>(vm,value, "integer");
-      //@anfelbar: I didn't use the gecode primitive commit because it needs a stable space.
-      //In consequence, it is not allowed to make several commits on a given space.
-      //What we have then? A temporal commit using Gecode::rel. Of course, this breaks
-      //all support of the gecode strategy selection that we already support.
-      //However, the real commit operation, whos responsable is the mozart distributor, will
-      //select the variable and value according with the real user options.
-      unsigned int i=0;
-      while (true){
-	if (home.intVar(i).size()!=1){
-	  if (alt==0){
-	    //Apply the constraint X =: min(x)
-	    Gecode::rel(home, home.intVar(i), Gecode::IRT_EQ, home.intVar(i).min());
-	    break;
-	  }
-	  else{
-	    //Apply the constraint X \=: min(x)
-	    Gecode::rel(home, home.intVar(i), Gecode::IRT_NQ, home.intVar(i).min());
-	    break;
-	  }
-	}
-	i++;
-      }
+      const Gecode::Choice *ch = home.choice();
+      home.commit(*ch, (unsigned int)alt-1);
       return;
     }
   }
@@ -287,6 +267,29 @@ void ReifiedSpace::waitStableSpace(RichNode self, VM vm) {
     }
   }
 
+  UnstableNode ReifiedSpace::dataMergeSpace(RichNode self, VM vm) {
+    Space* currentSpace = vm->getCurrentSpace();
+    Space* space = getSpace();
+
+    if (!space->isAdmissible(currentSpace))
+      raise(vm, vm->coreatoms.spaceAdmissible);
+
+    // Update status var
+    RichNode statusVar = *space->getStatusVar();
+    if (statusVar.isTransient()) {
+      UnstableNode atomMerged = Atom::build(vm, vm->coreatoms.merged);
+      DataflowVariable(statusVar).bind(vm, atomMerged);
+    }
+
+    // Extract root var
+    auto result = mozart::build(vm, *space->getRootVar());
+
+    // Become a merged space
+    self.become(vm, MergedSpace::build(vm));
+
+    return result;
+  }
+
   bool ReifiedSpace::isConstraintSpace(RichNode self, VM vm) {
     Space* space = getSpace();
     if(space->hasConstraintSpace())
@@ -341,6 +344,10 @@ void FailedSpace::waitStableSpace(VM vm) {
   void FailedSpace::info(VM vm) {
     // nothing to do                                                                                                                                            
   }
+
+  UnstableNode FailedSpace::dataMergeSpace(VM vm) {
+    fail(vm);
+  }
 #endif
 /////////////////
 // MergedSpace //
@@ -386,6 +393,10 @@ void MergedSpace::waitStableSpace(VM vm) {
 #ifdef VM_HAS_CSS
   void MergedSpace::info(VM vm) {
     // nothing to do                                                                                                                                            
+  }
+
+  UnstableNode MergedSpace::dataMergeSpace(VM vm) {
+    raise(vm, vm->coreatoms.spaceMerged);
   }
 #endif
 

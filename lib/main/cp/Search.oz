@@ -77,7 +77,7 @@ define
    
   fun {WrapP S}
     proc {$ X}
-      {Space.merge {Space.clone S} X}
+      {Space.dataMerge {Space.clone S} X}
     end
   end
 
@@ -87,7 +87,7 @@ define
   local
     proc {ReDo Is C}
       case Is of nil then skip
-      [] I|Ir then {ReDo Ir C} {Space.commit C I-1}
+      [] I|Ir then {ReDo Ir C} {Space.commit C I}
       end
     end
   in
@@ -102,7 +102,7 @@ define
   proc {Better S O SS}
      CS={Space.clone SS}
   in
-     {Space.inject S proc {$ X} {O {Space.merge CS} X} end}
+     {Space.inject S proc {$ X} {O {Space.dataMerge CS} X} end}
   end
 
   %%
@@ -115,9 +115,9 @@ define
       of failed then nil
       [] succeeded then S
       [] alternatives(N) then C={Space.clone S} in
-        {Space.commit S 0}
+        {Space.commit S 1}
         case {OneDepthNR KF S}
-        of nil then {Space.commit C 1} {OneDepthNR KF C}
+        of nil then {Space.commit C 2} {OneDepthNR KF C}
         elseof O then O
         end
       end
@@ -128,10 +128,10 @@ define
   local
     fun {AltCopy KF I M S MRD}
       if I==M then
-         {Space.commit S I-1}
+         {Space.commit S I}
          {OneDepthR KF S S nil MRD MRD}
       else C={Space.clone S} in
-         {Space.commit C I-1}
+         {Space.commit C I}
          case {OneDepthR KF C S [I] 1 MRD}
          of nil then {AltCopy KF I+1 M S MRD}
          elseof O then O
@@ -140,7 +140,7 @@ define
     end
 
     fun {Alt KF I M S C As RD MRD}
-      {Space.commit S I-1}
+      {Space.commit S I}
       if I==M then {OneDepthR KF S C I|As RD MRD}
       else
         case {OneDepthR KF S C I|As RD MRD}
@@ -174,6 +174,20 @@ define
       {SearchDFS S one}
     end
 
+    fun {AllDFSGecode P}
+      S
+    in
+      S={Space.new P}
+      {SearchDFS S all}
+    end
+
+    fun {AuxAllSol L O ?S}
+      case L
+      of H|T then {AuxAllSol T O {O H}|S}
+      [] nil then S
+      end
+    end
+
     fun {OneDepth P MRD ?KP}
       KF={NewKiller ?KP} S={Space.new P}
     in
@@ -185,11 +199,11 @@ define
     local
       fun {AltCopy KF I M S CD MRD CO}
         if I==M then
-          {Space.commit S I-1}
+          {Space.commit S I}
           {OneBoundR KF S S nil CD MRD MRD CO}
         else
           C={Space.clone S}
-          {Space.commit C I-1}
+          {Space.commit C I}
           O={OneBoundR KF C S [I] CD 1 MRD CO}
         in
           if {Space.is O} then O
@@ -199,7 +213,7 @@ define
       end
 
       fun {Alt KF I M S C As CD RD MRD CO}
-        {Space.commit S I-1}
+        {Space.commit S I}
         if I==M then {OneBoundR KF S C I|As CD RD MRD CO}
         else O={OneBoundR KF S C I|As CD RD MRD CO} in
           if {Space.is O} then O
@@ -280,10 +294,24 @@ define
 
   in
 
+    SearchGecode = gecode(dfsOne: fun {$ P}
+                                    case {OneDFSGecode P}
+                                    of nil then nil
+                                    elseof S then [{Space.dataMerge S}]
+                                    end
+                                  end
+                          dfsAll: fun {$ P}
+                                    case {AllDFSGecode P}
+                                    of nil then nil
+                                    elseof S then {AuxAllSol S Space.dataMerge nil}
+                                    end
+                                  end
+                         )
+
     OneModule = one(dfsGecode:  fun {$ P}
                                   case {OneDFSGecode P}
                                   of nil then nil
-                                  elseof S then [{Space.merge S}]
+                                  elseof S then [{Space.dataMerge S}]
                                   end
                                 end
                     dfsGecodeP: fun {$ P}
@@ -302,7 +330,7 @@ define
                     depth:      fun {$ P MRD ?KP}
                                   case {OneDepth P MRD ?KP}
                                   of nil then nil
-                                  elseof S then [{Space.merge S}]
+                                  elseof S then [{Space.dataMerge S}]
                                   end
                                 end
                     depthP:     fun {$ P MRD ?KP}
@@ -322,7 +350,7 @@ define
                                   case {OneBound P MD MRD ?KP}
                                   of nil then nil
                                   [] cut then cut
-                                  elseof S then [{Space.merge S}]
+                                  elseof S then [{Space.dataMerge S}]
                                   end
                                 end
                     boundP:     fun {$ P MD MRD ?KP}
@@ -343,7 +371,7 @@ define
                    iter:        fun {$ P MRD ?KP}
                                   case {OneIter P MRD ?KP}
                                   of nil then nil
-                                  elseof S then [{Space.merge S}]
+                                  elseof S then [{Space.dataMerge S}]
                                   end
                                 end
                    iterP:       fun {$ P MRD ?KP}
@@ -392,7 +420,7 @@ define
         of failed then Os=Or
         [] succeeded then Os={W S}|Or
         [] alternatives(N) then C={Space.clone S} Ot in
-          {Space.commit S 0} {Space.commit C 1}
+          {Space.commit S 1} {Space.commit C 2}
           Os={AllNR KF S W Ot}
           Ot={AllNR KF C W Or}
         end
@@ -403,17 +431,17 @@ define
     local
       proc {AltCopy KF I M S MRD W Or Os}
         if I==M then
-          {Space.commit S I-1}
+          {Space.commit S I}
           {AllR KF S S nil MRD MRD W Or Os}
         else C={Space.clone S} Ot in
-          {Space.commit C I-1}
+          {Space.commit C I}
           Os={AllR KF C S [I] 1 MRD W Ot}
           Ot={AltCopy KF I+1 M S MRD W Or}
         end
       end
 
       proc {Alt KF I M S C As RD MRD W Or Os}
-        {Space.commit1 S I}
+        {Space.commit S I}
         if I==M then
           {AllR KF S C I|As RD MRD W Or Os}
         else Ot NewS={Recompute C As} in
@@ -440,8 +468,8 @@ define
     fun {All P MRD ?KP}
       KF={NewKiller ?KP} S={Space.new P}
     in
-      if MRD==1 then {AllNR KF S Space.merge nil}
-      else {AllR KF S S nil MRD MRD Space.merge nil}
+      if MRD==1 then {AllNR KF S Space.dataMerge nil}
+      else {AllR KF S S nil MRD MRD Space.dataMerge nil}
       end
     end
 
@@ -476,7 +504,7 @@ define
           of failed then SS
           [] succeeded then S
           [] alternatives(N) then C={Space.clone S} NewSS in
-            {Space.commit S 0} {Space.commit C 1}
+            {Space.commit S 1} {Space.commit C 2}
             NewSS={BABNR KF S O SS}
             if SS==NewSS then {BABNR KF C O SS}
             elseif NewSS==nil then nil
@@ -584,7 +612,7 @@ define
     BestModule = best(bab:      fun {$ P O MRD ?KP}
                                   case {BestBAB P O MRD ?KP}
                                   of nil then nil
-                                  elseof S then [{Space.merge S}]
+                                  elseof S then [{Space.dataMerge S}]
                                   end
                                 end
                       babP:     fun {$ P O MRD ?KP}
@@ -603,7 +631,7 @@ define
                       restart:  fun {$ P O MRD ?KP}
                                   case {BestRestart P O MRD ?KP}
                                   of nil then nil
-                                  elseof S then [{Space.merge S}]
+                                  elseof S then [{Space.dataMerge S}]
                                   end
                                 end
                       restartP: fun {$ P O MRD ?KP}
@@ -873,8 +901,6 @@ define
                     all:  SearchAll
                     best: SearchBest
                    )
-
-  SearchGecode = gecode(one: SearchGOne)
 
 
 end

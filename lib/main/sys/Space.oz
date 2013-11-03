@@ -42,6 +42,7 @@ export
    Commit
    Kill
    Choose
+   DataMerge
 
 define
 
@@ -54,5 +55,6 @@ define
    Commit     = Boot_Space.commit
    Kill       = Boot_Space.kill
    Choose     = Boot_Space.choose
+   DataMerge  = Boot_Space.dataMerge
 
 end

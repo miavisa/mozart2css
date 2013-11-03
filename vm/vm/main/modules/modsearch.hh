@@ -26,7 +26,7 @@ public:
         Gecode::DFS<GecodeSpace> e(gs);
         if (GecodeSpace *sol = e.next()) {
           result = SpaceLike(space).cloneSpace(vm);
-	  ConstraintSpace(result).updateConstraintSpace(vm, sol);
+          ConstraintSpace(result).updateConstraintSpace(vm, sol);
         }
         else
           result = build(vm, vm->coreatoms.nil);

@@ -669,6 +669,10 @@ struct Interface<SpaceLike>:
   void info(RichNode self, VM vm) {
     raiseTypeError(vm, "Space", self);
   }
+
+  UnstableNode dataMergeSpace(RichNode self, VM vm) {
+    raiseTypeError(vm, "Space", self);
+  }
 #endif
 
 };

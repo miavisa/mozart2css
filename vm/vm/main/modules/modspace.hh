@@ -162,6 +162,15 @@ public:
       return SpaceLike(space).info(vm);
     }
   };
+
+  class DataMerge: public Builtin<DataMerge> {
+  public:
+    DataMerge(): Builtin("dataMerge") {}
+
+    static void call(VM vm, In space, Out result) {
+      result = SpaceLike(space).dataMergeSpace(vm);
+    }
+  };
 #endif
 };
 
